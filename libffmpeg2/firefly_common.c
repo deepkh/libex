@@ -8,14 +8,6 @@
 */
 
 #include "firefly_common.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <errno.h>
-#include <windows.h>
-#include <tchar.h>
-#include <wchar.h>
 
 #define ff_assert(cond) do {                                           \
     if (!(cond)) {                                                      \

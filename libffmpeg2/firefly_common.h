@@ -7,8 +7,29 @@
 #ifndef _FIREFLY_DEF_H_
 #define _FIREFLY_DEF_H_
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <inttypes.h>
+#include <sys/queue.h>
+#include <time.h>
+#include <errno.h>
+#include <wchar.h>
 #ifdef __MINGW32__
 #include <windows.h>
+#include <tchar.h>
+#include <stdio.h>
+#endif
+
+#ifdef __APPLE__
+#include <mach/mach_time.h> /* mach_absolute_time */
+#include <mach/mach.h>      /* host_get_clock_service, mach_... */
+#include <mach/clock.h>     /* clock_get_time */
+#include <sys/time.h>
+#endif
+
+
+#ifdef __MINGW32__
 #define EXPORTS __declspec(dllexport)
 #define MINGWAPI __cdecl
 #else
