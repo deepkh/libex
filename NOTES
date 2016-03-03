@@ -1,0 +1,19 @@
+[libcodec2-1.1.4]
+* porting from libcodec-1.1.3 592794a326a6949a93f040c0a933c97535be57c1
+* remove source code of ffmpeg, fdkaac, x264 instead of libpkg2
+* remove binary of ffmpeg (reduce size)
+[libcodec-1.1.3]
+* ffmpeg2.c: print video/audio codec name
+[libcodec-1.1.2]
+* del libffmpeg
+* add libffmpeg2
+* rebuild runtime_lgpl-2.5.11 (hide 'missing picture in access unit with size' in h264_parser.c:449)
+* remove downscaling function
+* remove qsv_264_dec inside
+* video output only FIREFLY_TYPE_X264, FIREFLY_TYPE_YUV420P
+* audio output only 2 channel, 44100khz, 16bit, FIREFLY_TYPE_PCM
+[libcodec-1.1.1]
+* fixed crashed issue when load x264, ffmpeg, fdkaac dll
+* add qsv_264_dec inside of ffmpeg.dll
+* add ffmpeg-2.5.11 binary (MINGW-W64 BUILD SCRIPT 3.6.7, gcc-4.9.3, LGPL-2.1)
+* compile with mingw-w64-4.9.3
