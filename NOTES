@@ -1,3 +1,5 @@
+[libcodec2-1.1.5]
+* fixed build issue on ubuntu-15.04 gcc-4.9.2-x86_64 
 [libcodec2-1.1.4]
 * porting from libcodec-1.1.3 592794a326a6949a93f040c0a933c97535be57c1
 * remove source code of ffmpeg, fdkaac, x264 instead of libpkg2
