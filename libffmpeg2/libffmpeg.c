@@ -437,7 +437,7 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 
 	outbuf->buf_size = newpkt.size;
 	pts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
-	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f) - outbuf->header.offset_pts;
+	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
@@ -508,7 +508,7 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	//dts2 = (p->frame->pkt_pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
 	//printf("avframe pts:%f pkt_pts:%"PRId64" %.4f pkt_dts:%"PRId64" %.4f\n", pts, p->frame->pkt_pts, pts2, p->frame->pkt_dts, dts2);
 
-	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f) - outbuf->header.offset_pts;
+	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
 		printf("[VID] org_pts:%f != new_pts:%f\n", pts, firefly_video_pts(outbuf));
@@ -613,7 +613,7 @@ static int ff_decode_audio(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 		p->aud_cvrt, &aud_buf
 		, out_samples, (const uint8_t **)p->frame->extended_data, in_samples);
 
-	outbuf->header.pts = ff_audio_ts_mapping(pts, p->sample_rate) - outbuf->header.offset_pts;
+	outbuf->header.pts = ff_audio_ts_mapping(pts, p->sample_rate)/* - outbuf->header.offset_pts*/;
 	outbuf->header.num_frame += out_samples;
 	outbuf->buf_size = outbuf->header.num_frame * p->frame_size;
 
@@ -770,22 +770,22 @@ error:
 int EXPORTS MINGWAPI libffmpeg_set_video_offset(libffmpeg_t h, int64_t video_offset)
 {
 	libffmpeg_data *p = (libffmpeg_data *)h;	
-	if (p->vid_outbuf) {
-		p->vid_outbuf->header.pts = 0;
-		p->vid_outbuf->header.offset_pts = video_offset;
-	}
+	//20160413: I have no idead why offset_pts exists, may be MFT H264 Encoder needed?
+	//if (p->vid_outbuf) {
+	//	p->vid_outbuf->header.pts = 0;
+	//	p->vid_outbuf->header.offset_pts = video_offset;
+	//}
 	return 0;
 }
 
 int EXPORTS MINGWAPI libffmpeg_set_audio_offset(libffmpeg_t h, int64_t audio_offset)
 {
 	libffmpeg_data *p = (libffmpeg_data *)h;
-
-	if (p->aud_outbuf) {
-		p->aud_outbuf->header.pts = 0;
-		p->aud_outbuf->header.offset_pts = audio_offset;
-	}
-
+	//20160413: I have no idead why offset_pts exists, may be MFT H264 Encoder needed?
+	//if (p->aud_outbuf) {
+	//	p->aud_outbuf->header.pts = 0;
+	//	p->aud_outbuf->header.offset_pts = audio_offset;
+	//}
 	return 0;
 }
 
