@@ -15,11 +15,11 @@ ifneq (, $(findstring mingw, $(CROSS_COMPILE1)))
 				$(RUNTIME)/lib/libswresample.dll.a \
 				$(RUNTIME)/lib/libswscale.dll.a
 #$(RUNTIME)/lib/libpostproc.dll.a
-	TARGET_DLL = ffmpeg2.$(DLLSUFFIX)
+	TARGET_DLL = ffmpeg.$(DLLSUFFIX)
 	TARGET_NAME = $(TARGET_DLL)
 else
 	LDFLAGS += -lavcodec -lavfilter -lavformat -lavresample -lavutil -lswresample -lswscale
-	TARGET_SOLIB = ffmpeg2.$(DLLSUFFIX)
+	TARGET_SOLIB = ffmpeg.$(DLLSUFFIX)
 	TARGET_NAME = $(TARGET_SOLIB)
 endif
 

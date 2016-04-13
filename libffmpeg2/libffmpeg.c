@@ -29,7 +29,7 @@ char g_szMsg[8192];
 #define MSDK_ALIGN32(value)                      (((value + 31) >> 5) << 5) // round up to a multiple of 32
 #define MSDK_ALIGN64(value)                      (((value + 63) >> 6) << 6) // round up to a multiple of 64
 
-static int libffmpeg2_init = 0;
+static int libffmpeg_init = 0;
 
 typedef struct {
 	int idx;
@@ -54,7 +54,7 @@ typedef struct {
 } ff_codec;
 
 typedef struct {
-	libffmpeg2_config *cfg;
+	libffmpeg_config *cfg;
 	AVFormatContext *fmt_ctx;
 	double duration;
 
@@ -79,8 +79,8 @@ typedef struct {
 	firefly_buffer *vid_outbuf;
 	firefly_buffer *aud_outbuf;
 
-	libffmpeg2_log log;
-} libffmpeg2_data;
+	libffmpeg_log log;
+} libffmpeg_data;
 
 static int64_t ff_video_ts_mapping(double secs, double fps_f)
 {
@@ -118,7 +118,7 @@ static int ff_codec_open(enum AVMediaType type, AVFormatContext *fmt_ctx, ff_cod
 	AVDictionary *opts = NULL;
 
 	if ((ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0)) <0) {
-		libffmpeg2_setmsg("Could not find %s stream", av_get_media_type_string(type));
+		libffmpeg_setmsg("Could not find %s stream", av_get_media_type_string(type));
 		goto error;
 	}
 
@@ -127,7 +127,7 @@ static int ff_codec_open(enum AVMediaType type, AVFormatContext *fmt_ctx, ff_cod
 
 	c->dec_ctx = st->codec;
 	if (!(dec = avcodec_find_decoder(c->dec_ctx->codec_id))) {
-		libffmpeg2_setmsg("failed to find %s codec", av_get_media_type_string(type));
+		libffmpeg_setmsg("failed to find %s codec", av_get_media_type_string(type));
 		goto error;
 	}
 
@@ -136,7 +136,7 @@ static int ff_codec_open(enum AVMediaType type, AVFormatContext *fmt_ctx, ff_cod
 	}
 	//c->dec_ctx->thread_type = FF_THREAD_SLICE;
 	if (avcodec_open2(c->dec_ctx, dec, &opts) < 0) {
-		libffmpeg2_setmsg("failed to open %s codec", av_get_media_type_string(type));
+		libffmpeg_setmsg("failed to open %s codec", av_get_media_type_string(type));
 		goto error;
 	}
 
@@ -162,7 +162,7 @@ static int ff_codec_open(enum AVMediaType type, AVFormatContext *fmt_ctx, ff_cod
 			c->fps_num = st->r_frame_rate.num;
 			c->fps_den = st->r_frame_rate.den;
 		} else {
-			libffmpeg2_setmsg("failed to get frame rate");
+			libffmpeg_setmsg("failed to get frame rate");
 			goto error;
 		}
 
@@ -201,18 +201,18 @@ static int get_swscale_method(char *str)
 	return SWS_FAST_BILINEAR;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_open(libffmpeg2_t *h, libffmpeg2_config *cfg, libffmpeg2_log log)
+int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libffmpeg_log log)
 {
-	libffmpeg2_data *p = NULL;
+	libffmpeg_data *p = NULL;
 	char tmp[96];
 
-	if (!libffmpeg2_init) {
+	if (!libffmpeg_init) {
 		av_register_all();
-		libffmpeg2_init = 1;
+		libffmpeg_init = 1;
 	}
 
-	if ((p = (libffmpeg2_data*)calloc(1, sizeof(libffmpeg2_data))) == NULL) {
-		libffmpeg2_setmsg("failed to calloc libffmpeg2_data");
+	if ((p = (libffmpeg_data*)calloc(1, sizeof(libffmpeg_data))) == NULL) {
+		libffmpeg_setmsg("failed to calloc libffmpeg_data");
 		goto error;
 	}
 
@@ -221,13 +221,13 @@ int EXPORTS MINGWAPI libffmpeg2_open(libffmpeg2_t *h, libffmpeg2_config *cfg, li
 
 	/* open input file, and allocate format context */
 	if (avformat_open_input(&p->fmt_ctx, cfg->file_name, NULL, NULL) < 0) {
-		libffmpeg2_setmsg("failed to open '%s'", cfg->file_name);
+		libffmpeg_setmsg("failed to open '%s'", cfg->file_name);
 		goto error;
 	}
 
 	/* retrieve stream information */
 	if (avformat_find_stream_info(p->fmt_ctx, NULL) < 0) {
-		libffmpeg2_setmsg("failed to avformat_find_stream_info '%s'", cfg->file_name);
+		libffmpeg_setmsg("failed to avformat_find_stream_info '%s'", cfg->file_name);
 		goto error;
 	}
 
@@ -261,13 +261,13 @@ int EXPORTS MINGWAPI libffmpeg2_open(libffmpeg2_t *h, libffmpeg2_config *cfg, li
 			if ((p->vid_outbuf = firefly_frame_video_calloc(
 				(enum FIREFLY_TYPE) cfg->video_type, DEFAULT_VIDEO_TRACK_ID
 				, cfg->width, cfg->height, cfg->fps_num, cfg->fps_den, 1)) == NULL) {
-				libffmpeg2_setmsg("failed to calloc video frame %dx%d", cfg->width, cfg->height);
+				libffmpeg_setmsg("failed to calloc video frame %dx%d", cfg->width, cfg->height);
 				goto error;
 			}
 
 			// H264 NALU Annex-B*/
 			if ((p->vid.h264_bsfc = av_bitstream_filter_init("h264_mp4toannexb")) == NULL) {
-				libffmpeg2_setmsg("failed to init filter of h264_mp4toannexb");
+				libffmpeg_setmsg("failed to init filter of h264_mp4toannexb");
 				goto error;
 			}
 		} else {
@@ -282,7 +282,7 @@ int EXPORTS MINGWAPI libffmpeg2_open(libffmpeg2_t *h, libffmpeg2_config *cfg, li
 					, cfg->width, cfg->height
 					, AV_PIX_FMT_YUV420P
 					, SWS_POINT, NULL, NULL, NULL)) == NULL) {
-					libffmpeg2_setmsg("failed to sws_getContext");
+					libffmpeg_setmsg("failed to sws_getContext");
 					goto error;
 				}
 			}
@@ -291,7 +291,7 @@ int EXPORTS MINGWAPI libffmpeg2_open(libffmpeg2_t *h, libffmpeg2_config *cfg, li
 			if ((p->vid_outbuf = firefly_frame_video_calloc(
 				FIREFLY_TYPE_YUV420P, DEFAULT_VIDEO_TRACK_ID
 				, cfg->width, cfg->height, cfg->fps_num, cfg->fps_den, 1)) == NULL) {
-				libffmpeg2_setmsg("failed to calloc video frame %dx%d", cfg->width, cfg->height);
+				libffmpeg_setmsg("failed to calloc video frame %dx%d", cfg->width, cfg->height);
 				goto error;
 			}
 		}
@@ -308,12 +308,12 @@ openaudio:
 		p->frame_size = cfg->bit_rate / 8 * cfg->channels;
 
 		if ((p->aud_buf = ff_buffer_new(1)) == NULL) {
-			libffmpeg2_setmsg("failed to swr_alloc '%s'", cfg->file_name);
+			libffmpeg_setmsg("failed to swr_alloc '%s'", cfg->file_name);
 			goto error;
 		}
 
 		if ((p->aud_cvrt = swr_alloc()) == NULL) {
-			libffmpeg2_setmsg("failed to swr_alloc '%s'", cfg->file_name);
+			libffmpeg_setmsg("failed to swr_alloc '%s'", cfg->file_name);
 			goto error;
 		}
 
@@ -329,7 +329,7 @@ openaudio:
 		av_opt_set_sample_fmt(p->aud_cvrt, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
 
 		if (swr_init(p->aud_cvrt)) {
-			libffmpeg2_setmsg("failed to swr_init '%s'", cfg->file_name);
+			libffmpeg_setmsg("failed to swr_init '%s'", cfg->file_name);
 			goto noaudio;
 		}
 
@@ -337,7 +337,7 @@ openaudio:
 		if ((p->aud_outbuf = firefly_frame_audio_calloc(
 			FIREFLY_TYPE_PCM, DEFAULT_AUDIO_TRACK_ID, cfg->channels
 			, cfg->sample_rate, cfg->bit_rate, cfg->sample_rate*50)) == NULL) {
-			libffmpeg2_setmsg( "failed to firefly_frame_audio_calloc '%s'", cfg->file_name);
+			libffmpeg_setmsg( "failed to firefly_frame_audio_calloc '%s'", cfg->file_name);
 			goto noaudio;
 		}
 
@@ -351,12 +351,12 @@ finally:
 	//av_dump_format(p->fmt_ctx, 0, cfg->file_name, 0);
 
 	if (!p->vid.dec_ctx && !p->aud.dec_ctx) {
-		libffmpeg2_setmsg("failed to find video or audio stream '%s'", cfg->file_name);
+		libffmpeg_setmsg("failed to find video or audio stream '%s'", cfg->file_name);
 		goto error;
 	}
 
 	if ((p->frame = av_frame_alloc()) == NULL) {
-		libffmpeg2_setmsg("failed to av_frame_alloc '%s'", cfg->file_name);
+		libffmpeg_setmsg("failed to av_frame_alloc '%s'", cfg->file_name);
 		goto error;
 	}
 
@@ -381,11 +381,11 @@ finally:
 	*h = p;
 	return 0;
 error:
-	libffmpeg2_close(p);
+	libffmpeg_close(p);
 	return -1;
 }
 
-static int ff_read_h264_video(libffmpeg2_data *p, int stream_idx, firefly_buffer *outbuf)
+static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer *outbuf)
 {
 	AVPacket newpkt;
 	int with_annex_b = 0;
@@ -452,7 +452,7 @@ static int ff_read_h264_video(libffmpeg2_data *p, int stream_idx, firefly_buffer
 	return 1;
 }
 
-static int ff_decode_video(libffmpeg2_data *p, int stream_idx, firefly_buffer *outbuf)
+static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *outbuf)
 {
 	int ret;
 	int got_frame = 0;
@@ -486,7 +486,7 @@ static int ff_decode_video(libffmpeg2_data *p, int stream_idx, firefly_buffer *o
 
 	if ((ret = avcodec_decode_video2(p->fmt_ctx->streams[stream_idx]->codec, p->frame, &got_frame, &p->pkt)) < 0) {
 		if (p->video_failed_decode_count++ >= FAILED_VIDEO_DECODE_COUNT) {
-			libffmpeg2_setmsg("failed to decode video over %d times", p->video_failed_decode_count);
+			libffmpeg_setmsg("failed to decode video over %d times", p->video_failed_decode_count);
 			goto error;
 		}
 		//dont care every thing
@@ -539,7 +539,7 @@ error:
 	return -1;
 }
 
-static int ff_decode_audio_flush_pcm(libffmpeg2_data *p
+static int ff_decode_audio_flush_pcm(libffmpeg_data *p
 	, firefly_buffer *outbuf)
 {
 	int out_samples = 0;
@@ -572,7 +572,7 @@ static int ff_decode_audio_flush_pcm(libffmpeg2_data *p
 	return 0;
 }
 
-static int ff_decode_audio(libffmpeg2_data *p, int stream_idx, firefly_buffer *outbuf)
+static int ff_decode_audio(libffmpeg_data *p, int stream_idx, firefly_buffer *outbuf)
 {
 	int ret;
 	int got_frame = 0;
@@ -634,7 +634,7 @@ finally:
 	return ret;
 }
 
-static int ff_decode_audio_split(libffmpeg2_data *p, firefly_buffer *outbuf)
+static int ff_decode_audio_split(libffmpeg_data *p, firefly_buffer *outbuf)
 {
 	int max_frame_size = MAX_AAC_FRAME_SIZE * p->frame_size;
 	int remain_frame = outbuf->header.num_frame - MAX_AAC_FRAME_SIZE;
@@ -653,9 +653,9 @@ static int ff_decode_audio_split(libffmpeg2_data *p, firefly_buffer *outbuf)
 	return 0;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_decode(libffmpeg2_t h, firefly_buffer **in)/*libffmpeg2_dec *dec)*/
+int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libffmpeg_dec *dec)*/
 {
-	libffmpeg2_data *p = (libffmpeg2_data *)h;
+	libffmpeg_data *p = (libffmpeg_data *)h;
 	int stream_idx = -1;
 	int ret;
 	
@@ -670,13 +670,13 @@ int EXPORTS MINGWAPI libffmpeg2_decode(libffmpeg2_t h, firefly_buffer **in)/*lib
 	}
 
 	if (av_read_frame(p->fmt_ctx, &p->pkt) < 0) {
-		libffmpeg2_setmsg("END of file");
+		libffmpeg_setmsg("END of file");
 		goto error;
 	}
 
 	//let av_frame_get_best_effort_timestamp to guess pts and dts
 	/*if (p->pkt.dts == AV_NOPTS_VALUE && p->pkt.pts == AV_NOPTS_VALUE) {
-		libffmpeg2_setmsg("no pts and dts at all");
+		libffmpeg_setmsg("no pts and dts at all");
 		goto error;
 	}*/
 
@@ -700,14 +700,14 @@ int EXPORTS MINGWAPI libffmpeg2_decode(libffmpeg2_t h, firefly_buffer **in)/*lib
 		
 		/** ugly hack */
 		if (p->pkt.size > 8820000) {
-			libffmpeg2_setmsg("audio buffer %d overflow", p->pkt.size);
+			libffmpeg_setmsg("audio buffer %d overflow", p->pkt.size);
 			goto error;
 		}
 
 		while (p->pkt.size > 0) {
 			if ((ret = ff_decode_audio(p, stream_idx, p->aud_outbuf)) < 0) {
 				if (p->audio_failed_decode_count++ >= FAILED_AUDIO_DECODE_COUNT) {
-					libffmpeg2_setmsg("failed to decode audio over %d times", p->audio_failed_decode_count);
+					libffmpeg_setmsg("failed to decode audio over %d times", p->audio_failed_decode_count);
 					goto error;
 				}
 				goto finally;
@@ -741,9 +741,9 @@ error:
 	return -1;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_seek(libffmpeg2_t h, void *p1, void *p2)
+int EXPORTS MINGWAPI libffmpeg_seek(libffmpeg_t h, void *p1, void *p2)
 {
-	libffmpeg2_data *p = (libffmpeg2_data *)h;
+	libffmpeg_data *p = (libffmpeg_data *)h;
 	double secs = *((double *)p1);
 	int64_t seek_base = 0;
 	AVRational avr;
@@ -756,7 +756,7 @@ int EXPORTS MINGWAPI libffmpeg2_seek(libffmpeg2_t h, void *p1, void *p2)
 		, avr, p->fmt_ctx->streams[p->vid.idx]->time_base);
 
 	if (av_seek_frame(p->fmt_ctx, p->vid.idx, seek_base, AVSEEK_FLAG_BACKWARD) < 0){
-		libffmpeg2_setmsg("failed to seek pos %.3f", secs);
+		libffmpeg_setmsg("failed to seek pos %.3f", secs);
 		goto error;
 	}
 
@@ -767,9 +767,9 @@ error:
 	return -1;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_set_video_offset(libffmpeg2_t h, int64_t video_offset)
+int EXPORTS MINGWAPI libffmpeg_set_video_offset(libffmpeg_t h, int64_t video_offset)
 {
-	libffmpeg2_data *p = (libffmpeg2_data *)h;	
+	libffmpeg_data *p = (libffmpeg_data *)h;	
 	if (p->vid_outbuf) {
 		p->vid_outbuf->header.pts = 0;
 		p->vid_outbuf->header.offset_pts = video_offset;
@@ -777,9 +777,9 @@ int EXPORTS MINGWAPI libffmpeg2_set_video_offset(libffmpeg2_t h, int64_t video_o
 	return 0;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_set_audio_offset(libffmpeg2_t h, int64_t audio_offset)
+int EXPORTS MINGWAPI libffmpeg_set_audio_offset(libffmpeg_t h, int64_t audio_offset)
 {
-	libffmpeg2_data *p = (libffmpeg2_data *)h;
+	libffmpeg_data *p = (libffmpeg_data *)h;
 
 	if (p->aud_outbuf) {
 		p->aud_outbuf->header.pts = 0;
@@ -789,9 +789,9 @@ int EXPORTS MINGWAPI libffmpeg2_set_audio_offset(libffmpeg2_t h, int64_t audio_o
 	return 0;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_reset(libffmpeg2_t h)
+int EXPORTS MINGWAPI libffmpeg_reset(libffmpeg_t h)
 {
-	libffmpeg2_data *p = (libffmpeg2_data *)h;
+	libffmpeg_data *p = (libffmpeg_data *)h;
 
 	if (!p->vid.h264_bsfc && p->vid.dec_ctx) {
 		avcodec_flush_buffers(p->vid.dec_ctx);
@@ -806,9 +806,9 @@ int EXPORTS MINGWAPI libffmpeg2_reset(libffmpeg2_t h)
 	return 0;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_close(libffmpeg2_t h)
+int EXPORTS MINGWAPI libffmpeg_close(libffmpeg_t h)
 {
-	libffmpeg2_data *p = (libffmpeg2_data *)h;
+	libffmpeg_data *p = (libffmpeg_data *)h;
 
 	if (!p) {
 		return -1;
@@ -854,12 +854,12 @@ int EXPORTS MINGWAPI libffmpeg2_close(libffmpeg2_t h)
 	return 0;
 }
 
-void EXPORTS MINGWAPI libffmpeg2_get_msg(char *msg)
+void EXPORTS MINGWAPI libffmpeg_get_msg(char *msg)
 {
 	sprintf(msg, "%s", g_szMsg);
 }
 
-void libffmpeg2_setmsg2(const char *file, int line, const char *fmt, ...)
+void libffmpeg_setmsg2(const char *file, int line, const char *fmt, ...)
 {
 	va_list args;
 	sprintf(g_szMsg, "%s(%d): ", file, line);
@@ -868,7 +868,7 @@ void libffmpeg2_setmsg2(const char *file, int line, const char *fmt, ...)
 	va_end(args);
 }
 
-int EXPORTS MINGWAPI libffmpeg2_video_scaling(
+int EXPORTS MINGWAPI libffmpeg_video_scaling(
 	int in_type, int in_width, int in_height, uint8_t **in_plane, int32_t *in_stride
 	, int out_type, int out_width, int out_height, uint8_t **out_plane, int32_t *out_stride) {
 
@@ -880,7 +880,7 @@ int EXPORTS MINGWAPI libffmpeg2_video_scaling(
 		, out_width, out_height
 		, PIX_FMT_YUV420P
 		, SWS_POINT/*SWS_BILINEAR*/, NULL, NULL, NULL)) == NULL) {
-		libffmpeg2_setmsg("failed to sws_getContext");
+		libffmpeg_setmsg("failed to sws_getContext");
 		goto error;
 	}
 
@@ -899,7 +899,7 @@ error:
 
 char _ffmsg[DBG_MSG_LEN];
 
-void fflog2(const char *file, int line, libffmpeg2_log log, const char *fmt, ...)
+void fflog2(const char *file, int line, libffmpeg_log log, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -915,11 +915,11 @@ void fflog2(const char *file, int line, libffmpeg2_log log, const char *fmt, ...
 
 
 typedef struct {
-	libffmpeg2_img_scale_config *cfg;
+	libffmpeg_img_scale_config *cfg;
 	struct SwsContext *sws;
 	firefly_buffer *outbuf;
-	libffmpeg2_log log;
-} libffmpeg2_img_scale_data;
+	libffmpeg_log log;
+} libffmpeg_img_scale_data;
 
 static int firefly_type_to_ffmpeg(int type)
 {
@@ -929,7 +929,7 @@ static int firefly_type_to_ffmpeg(int type)
 		case FIREFLY_TYPE_YUV420P:
 			return AV_PIX_FMT_YUV420P;
 		default:
-			libffmpeg2_setmsg("failed to firefly_type_to_ffmpeg: %d", type);
+			libffmpeg_setmsg("failed to firefly_type_to_ffmpeg: %d", type);
 	}
 	return -1;
 }
@@ -941,14 +941,14 @@ static int ffmpeg_type_to_firefly(int type) {
 		case AV_PIX_FMT_YUV420P:
 			return FIREFLY_TYPE_YUV420P;
 		default:
-			libffmpeg2_setmsg("failed to firefly_type_to_ffmpeg: %d", type);
+			libffmpeg_setmsg("failed to firefly_type_to_ffmpeg: %d", type);
 	}
 	return -1;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_img_scale_open(libffmpeg2_t *h, libffmpeg2_img_scale_config *cfg, libffmpeg2_log log)
+int EXPORTS MINGWAPI libffmpeg_img_scale_open(libffmpeg_t *h, libffmpeg_img_scale_config *cfg, libffmpeg_log log)
 {
-	libffmpeg2_img_scale_data *p = NULL;
+	libffmpeg_img_scale_data *p = NULL;
 	int in_type = -1;
 	int out_type = -1;
 	int out_type_firefly = -1;
@@ -976,13 +976,13 @@ int EXPORTS MINGWAPI libffmpeg2_img_scale_open(libffmpeg2_t *h, libffmpeg2_img_s
 
 	swscale_method = get_swscale_method(cfg->swscale_method);
 
-	if (!libffmpeg2_init) {
+	if (!libffmpeg_init) {
 		av_register_all();
-		libffmpeg2_init = 1;
+		libffmpeg_init = 1;
 	}
 
-	if ((p = (libffmpeg2_img_scale_data*)calloc(1, sizeof(libffmpeg2_img_scale_data))) == NULL) {
-		libffmpeg2_setmsg("failed to calloc libffmpeg2_img_scale_data");
+	if ((p = (libffmpeg_img_scale_data*)calloc(1, sizeof(libffmpeg_img_scale_data))) == NULL) {
+		libffmpeg_setmsg("failed to calloc libffmpeg_img_scale_data");
 		goto error;
 	}
 
@@ -993,7 +993,7 @@ int EXPORTS MINGWAPI libffmpeg2_img_scale_open(libffmpeg2_t *h, libffmpeg2_img_s
 	if ((p->outbuf = firefly_frame_video_calloc(
 		(enum FIREFLY_TYPE) out_type_firefly, DEFAULT_VIDEO_TRACK_ID
 		, cfg->out_width, cfg->out_height, 30, 1, 1)) == NULL) {
-		libffmpeg2_setmsg("failed to calloc video frame %dx%d", cfg->out_width, cfg->out_height);
+		libffmpeg_setmsg("failed to calloc video frame %dx%d", cfg->out_width, cfg->out_height);
 		goto error;
 	}
 
@@ -1006,20 +1006,20 @@ int EXPORTS MINGWAPI libffmpeg2_img_scale_open(libffmpeg2_t *h, libffmpeg2_img_s
 		, cfg->out_width, cfg->out_height
 		, out_type
 		, swscale_method, NULL, NULL, NULL)) == NULL) {
-		libffmpeg2_setmsg("failed to sws_getContext");
+		libffmpeg_setmsg("failed to sws_getContext");
 		goto error;
 	}
 
 	*h = p;
 	return 0;
 error:
-	libffmpeg2_img_scale_close(p);
+	libffmpeg_img_scale_close(p);
 	return -1;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_img_scale_scaling(libffmpeg2_t h, firefly_buffer *in, firefly_buffer **out)
+int EXPORTS MINGWAPI libffmpeg_img_scale_scaling(libffmpeg_t h, firefly_buffer *in, firefly_buffer **out)
 {
-	libffmpeg2_img_scale_data *p = (libffmpeg2_img_scale_data *) h;
+	libffmpeg_img_scale_data *p = (libffmpeg_img_scale_data *) h;
 	//int type = p->outbuf->header.type; 
 
 	*out = NULL;
@@ -1044,9 +1044,9 @@ int EXPORTS MINGWAPI libffmpeg2_img_scale_scaling(libffmpeg2_t h, firefly_buffer
 	return 0;
 }
 
-int EXPORTS MINGWAPI libffmpeg2_img_scale_close(libffmpeg2_t h)
+int EXPORTS MINGWAPI libffmpeg_img_scale_close(libffmpeg_t h)
 {
-	libffmpeg2_img_scale_data *p = (libffmpeg2_img_scale_data *) h;
+	libffmpeg_img_scale_data *p = (libffmpeg_img_scale_data *) h;
 
 	if (!p) {
 		return -1;

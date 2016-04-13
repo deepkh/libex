@@ -41,22 +41,22 @@ typedef struct {
 	int sample_rate;				//8000Hz, 44100hz, 48000hz
 	int bit_rate;					//8bits, 16bits
 	int channels;					//1,2
-} __attribute__((aligned (FF_ALIGNMENT_SIZE))) libffmpeg2_config;
+} __attribute__((aligned (FF_ALIGNMENT_SIZE))) libffmpeg_config;
 
-typedef void *libffmpeg2_t;
-typedef int (*libffmpeg2_log)(const char *fmt, ...);
-int EXPORTS MINGWAPI libffmpeg2_open(libffmpeg2_t *h, libffmpeg2_config *cfg, libffmpeg2_log log);
-int EXPORTS MINGWAPI libffmpeg2_decode(libffmpeg2_t h, firefly_buffer **in);
-int EXPORTS MINGWAPI libffmpeg2_seek(libffmpeg2_t h, void *p1, void *p2);
-int EXPORTS MINGWAPI libffmpeg2_set_video_offset(libffmpeg2_t h, int64_t video_offset);
-int EXPORTS MINGWAPI libffmpeg2_set_audio_offset(libffmpeg2_t h, int64_t audio_offset);
-int EXPORTS MINGWAPI libffmpeg2_reset(libffmpeg2_t h);
-int EXPORTS MINGWAPI libffmpeg2_close(libffmpeg2_t h);
-void EXPORTS MINGWAPI libffmpeg2_get_msg(char *msg);
-void libffmpeg2_setmsg2(const char *file, int line, const char *fmt, ...);
-#define libffmpeg2_setmsg(fmt, ...) libffmpeg2_setmsg2(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+typedef void *libffmpeg_t;
+typedef int (*libffmpeg_log)(const char *fmt, ...);
+int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libffmpeg_log log);
+int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in);
+int EXPORTS MINGWAPI libffmpeg_seek(libffmpeg_t h, void *p1, void *p2);
+int EXPORTS MINGWAPI libffmpeg_set_video_offset(libffmpeg_t h, int64_t video_offset);
+int EXPORTS MINGWAPI libffmpeg_set_audio_offset(libffmpeg_t h, int64_t audio_offset);
+int EXPORTS MINGWAPI libffmpeg_reset(libffmpeg_t h);
+int EXPORTS MINGWAPI libffmpeg_close(libffmpeg_t h);
+void EXPORTS MINGWAPI libffmpeg_get_msg(char *msg);
+void libffmpeg_setmsg2(const char *file, int line, const char *fmt, ...);
+#define libffmpeg_setmsg(fmt, ...) libffmpeg_setmsg2(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-void fflog2(const char *file, int line, libffmpeg2_log log, const char *fmt, ...);
+void fflog2(const char *file, int line, libffmpeg_log log, const char *fmt, ...);
 #define fflog(log, fmt, ...) fflog2(__FILE__, __LINE__, log, fmt, ##__VA_ARGS__)
 
 typedef struct {
@@ -71,14 +71,14 @@ typedef struct {
 	int out_type;					//ffmpeg pix_fmt type or firefly
 	int out_width;
 	int out_height;
-} __attribute__((aligned (FF_ALIGNMENT_SIZE))) libffmpeg2_img_scale_config;
+} __attribute__((aligned (FF_ALIGNMENT_SIZE))) libffmpeg_img_scale_config;
 
-int EXPORTS MINGWAPI libffmpeg2_img_scale_open(libffmpeg2_t *h, libffmpeg2_img_scale_config *cfg, libffmpeg2_log log);
-int EXPORTS MINGWAPI libffmpeg2_img_scale_scaling(libffmpeg2_t h, firefly_buffer *in, firefly_buffer **out);
-int EXPORTS MINGWAPI libffmpeg2_img_scale_close(libffmpeg2_t h);
+int EXPORTS MINGWAPI libffmpeg_img_scale_open(libffmpeg_t *h, libffmpeg_img_scale_config *cfg, libffmpeg_log log);
+int EXPORTS MINGWAPI libffmpeg_img_scale_scaling(libffmpeg_t h, firefly_buffer *in, firefly_buffer **out);
+int EXPORTS MINGWAPI libffmpeg_img_scale_close(libffmpeg_t h);
 
 //scaling
-int EXPORTS MINGWAPI libffmpeg2_video_scaling(
+int EXPORTS MINGWAPI libffmpeg_video_scaling(
 	int in_type, int in_width, int in_height, uint8_t **in_plane, int32_t *in_stride
 	, int out_type, int out_width, int out_height, uint8_t **out_plane, int32_t *out_stride
 );
