@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <libavutil/timestamp.h>
 #include <libavcodec/avcodec.h>
+#include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
 #include <libavformat/avformat.h>
@@ -21,6 +22,25 @@
 #include "ff_buffer.h"
 
 char g_szMsg[8192];
+
+enum {
+    NAL_SLICE           = 1,
+    NAL_DPA             = 2,
+    NAL_DPB             = 3,
+    NAL_DPC             = 4,
+    NAL_IDR_SLICE       = 5,
+    NAL_SEI             = 6,
+    NAL_SPS             = 7,
+    NAL_PPS             = 8,
+    NAL_AUD             = 9,
+    NAL_END_SEQUENCE    = 10,
+    NAL_END_STREAM      = 11,
+    NAL_FILLER_DATA     = 12,
+    NAL_SPS_EXT         = 13,
+    NAL_AUXILIARY_SLICE = 19,
+    NAL_FF_IGNORE       = 0xff0f001,
+};
+
 
 #define MAX_AAC_FRAME_SIZE 1024
 #define FAILED_VIDEO_DECODE_COUNT 30
@@ -64,6 +84,8 @@ typedef struct {
 	ff_codec vid;
 	int video_failed_decode_count;
 	struct SwsContext *vid_cvrt;
+	int is_vid_first_frame;
+	int64_t vid_dts;
 
 	ff_codec aud;
 	int audio_failed_decode_count;
@@ -251,6 +273,7 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 		cfg->height = p->vid.height;
 		cfg->fps_num = p->vid.fps_num;
 		cfg->fps_den = p->vid.fps_den;
+		p->is_vid_first_frame = 1;
 
 		//without decode h264 frame
 		if (cfg->disable_decode_h264 
@@ -385,6 +408,57 @@ error:
 	return -1;
 }
 
+int ff_get_nalu_type2(uint8_t *buf, int size, int *found_sps, int *found_pps, int *found_aud)
+{
+	static const uint8_t start_code_32[4] = {0, 0, 0, 1};
+	static const uint8_t start_code_24[3] = {0, 0, 1};
+	uint8_t *p, *p_end;
+	int start_code_len = 0;
+//	char mmsg[4096] = {0};
+	int nalu_type = 0;
+	int n;
+	  
+	p = buf;
+	p_end = p + size;
+
+	while((p < (p_end - 5))) {
+	
+		if (memcmp(p, start_code_24, 3) == 0) {
+			start_code_len = 3;
+		} else if (memcmp(p, start_code_32, 4) == 0) {
+			start_code_len = 4;
+		} else {
+			p++;
+			continue;
+		}
+
+		p += start_code_len;
+	//	sprintf(mmsg+strlen(mmsg), "%02X/%d ", p[0], p[0] & 0x1F);
+
+		n = p[0] & 0x1F;
+		switch(n) {
+			case NAL_SLICE:
+			case NAL_IDR_SLICE:
+				nalu_type = n;
+				goto finally;
+			case NAL_SPS:
+				*found_sps = 1;
+				break;
+			case NAL_PPS:
+				*found_pps = 1;
+				break;
+			case NAL_AUD:
+				*found_aud = 1;
+				break;
+		}
+	}
+
+finally:
+	//fflog("size:%d nalu:%s", size, mmsg);	
+	return nalu_type;
+}
+
+
 static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer *outbuf)
 {
 	AVPacket newpkt;
@@ -392,10 +466,10 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 	int ret;
 	double pts;
 
-	av_packet_rescale_ts(&p->pkt
-		, p->fmt_ctx->streams[stream_idx]->time_base
-		, p->fmt_ctx->streams[stream_idx]->codec->time_base);
-
+	int found_sps = 0;
+	int found_pps = 0;
+	int found_aud = 0;
+	int nalu_type;
 #if 0
 	{
 		double dts2 = 0.0f, pts2 = 0.0f;
@@ -429,15 +503,36 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 		newpkt.size = p->pkt.size;
 	}
 
+#if 1
+	nalu_type = ff_get_nalu_type2(newpkt.data, newpkt.size, &found_sps, &found_pps, &found_aud);
+	outbuf->buf_size = 0;
+
+	if (!found_aud) {
+		static uint8_t aud_nal[] = { 0x00, 0x00, 0x00, 0x01, 0x09, 0xf0 };
+		memcpy(outbuf->buf, aud_nal, sizeof(aud_nal));
+		outbuf->buf_size = sizeof(aud_nal);
+	}
+
+	if (nalu_type == NAL_IDR_SLICE) {
+		outbuf->header.frame_type = FIREFLY_FRAME_TYPE_I;
+	} else {
+		outbuf->header.frame_type = FIREFLY_FRAME_TYPE_P;
+	}
+
+	memcpy(outbuf->buf+outbuf->buf_size, newpkt.data, newpkt.size);
+	outbuf->buf_size += newpkt.size;
+#else
 	memcpy(outbuf->buf, newpkt.data, newpkt.size);
+	outbuf->buf_size = newpkt.size;
+#endif
 	
 	if (with_annex_b) {
 		av_free(newpkt.data);
 	}
 
-	outbuf->buf_size = newpkt.size;
 	pts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
 	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
+	outbuf->header.dts = p->vid_dts;
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
@@ -460,10 +555,6 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 
 	uint8_t **in_vid_plane;
 	int32_t *in_vid_stride;
-
-	av_packet_rescale_ts(&p->pkt
-		, p->fmt_ctx->streams[stream_idx]->time_base
-		, p->fmt_ctx->streams[stream_idx]->codec->time_base);
 
 #if 0
 	{
@@ -503,12 +594,13 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	
 	p->video_failed_decode_count = 0;
 	pts = av_frame_get_best_effort_timestamp(p->frame) * av_q2d(p->fmt_ctx->streams[stream_idx]->codec->time_base);
-
 	//pts2 = (p->frame->pkt_pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
 	//dts2 = (p->frame->pkt_pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
 	//printf("avframe pts:%f pkt_pts:%"PRId64" %.4f pkt_dts:%"PRId64" %.4f\n", pts, p->frame->pkt_pts, pts2, p->frame->pkt_dts, dts2);
 
 	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
+	outbuf->header.dts = ff_video_ts_mapping(p->vid_dts, p->vid.fps_f);
+
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
 		printf("[VID] org_pts:%f != new_pts:%f\n", pts, firefly_video_pts(outbuf));
@@ -658,6 +750,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 	libffmpeg_data *p = (libffmpeg_data *)h;
 	int stream_idx = -1;
 	int ret;
+	double dts;
 	
 	*in = NULL;
 
@@ -683,11 +776,27 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 	stream_idx = p->pkt.stream_index;
 
 	if (p->vid.dec_ctx && (stream_idx == p->vid.idx)) {
+
+		//rescale
+		av_packet_rescale_ts(&p->pkt
+			, p->fmt_ctx->streams[stream_idx]->time_base
+			, p->fmt_ctx->streams[stream_idx]->codec->time_base);
+
+		//record first frame as DTS start, because first Frame is I frame
+		if (p->is_vid_first_frame) {
+			dts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+			p->vid_dts = ff_video_ts_mapping(dts, p->vid.fps_f);
+			p->is_vid_first_frame = 0;
+			fflog(p->log, "FIRST DTS: %"PRId64, p->vid_dts);
+		}
+
 		if (p->vid.h264_bsfc) {
 			ret =ff_read_h264_video(p, stream_idx, p->vid_outbuf);
 		} else {
 			ret = ff_decode_video(p, stream_idx, p->vid_outbuf);
 		}
+
+		p->vid_dts++;
 
 		if (ret < 0) {
 			goto error;
@@ -760,6 +869,8 @@ int EXPORTS MINGWAPI libffmpeg_seek(libffmpeg_t h, void *p1, void *p2)
 		goto error;
 	}
 
+	p->is_vid_first_frame = 1;
+	p->vid_dts = 0;
 	p->num_frame = 0;
 	ff_buffer_reset(p->aud_buf);
 	return 0;
