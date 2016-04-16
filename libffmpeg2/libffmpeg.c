@@ -503,29 +503,29 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 		newpkt.size = p->pkt.size;
 	}
 
-#if 1
-	nalu_type = ff_get_nalu_type2(newpkt.data, newpkt.size, &found_sps, &found_pps, &found_aud);
-	outbuf->buf_size = 0;
+	if (p->cfg->enable_aud) {
+		nalu_type = ff_get_nalu_type2(newpkt.data, newpkt.size, &found_sps, &found_pps, &found_aud);
+		outbuf->buf_size = 0;
 
-	if (!found_aud) {
-		static uint8_t aud_nal[] = { 0x00, 0x00, 0x00, 0x01, 0x09, 0xf0 };
-		memcpy(outbuf->buf, aud_nal, sizeof(aud_nal));
-		outbuf->buf_size = sizeof(aud_nal);
-	}
+		if (!found_aud) {
+			static uint8_t aud_nal[] = { 0x00, 0x00, 0x00, 0x01, 0x09, 0xf0 };
+			memcpy(outbuf->buf, aud_nal, sizeof(aud_nal));
+			outbuf->buf_size = sizeof(aud_nal);
+		}
 
-	if (nalu_type == NAL_IDR_SLICE) {
-		outbuf->header.frame_type = FIREFLY_FRAME_TYPE_I;
+		if (nalu_type == NAL_IDR_SLICE) {
+			outbuf->header.frame_type = FIREFLY_FRAME_TYPE_I;
+		} else {
+			outbuf->header.frame_type = FIREFLY_FRAME_TYPE_P;
+		}
+
+		memcpy(outbuf->buf+outbuf->buf_size, newpkt.data, newpkt.size);
+		outbuf->buf_size += newpkt.size;
 	} else {
-		outbuf->header.frame_type = FIREFLY_FRAME_TYPE_P;
+		memcpy(outbuf->buf, newpkt.data, newpkt.size);
+		outbuf->buf_size = newpkt.size;
 	}
 
-	memcpy(outbuf->buf+outbuf->buf_size, newpkt.data, newpkt.size);
-	outbuf->buf_size += newpkt.size;
-#else
-	memcpy(outbuf->buf, newpkt.data, newpkt.size);
-	outbuf->buf_size = newpkt.size;
-#endif
-	
 	if (with_annex_b) {
 		av_free(newpkt.data);
 	}

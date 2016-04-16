@@ -24,6 +24,7 @@ typedef struct {
 	const char *file_name;
 	int decode_threads;				//0 -> AUTO
 	int disable_decode_h264;
+	int enable_aud;					//HLS need this, dash dont, when do RAW HLS stream (without transcode)
 
 	//out
 	double duration;				//seconds
