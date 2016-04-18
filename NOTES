@@ -1,3 +1,7 @@
+[libcodec2-1.1.6]
+* libffmpeg: disable video_pts_offset (MFT use?)
+* libffmpeg: add NALU_AUD for transmux only
+* libffmpeg: add enable_aud flag for RAW HLS stream
 [libcodec2-1.1.5]
 * fixed build issue on ubuntu-15.04 gcc-4.9.2-x86_64 
 [libcodec2-1.1.4]
