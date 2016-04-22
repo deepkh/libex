@@ -1,3 +1,5 @@
+[libcodec2-1.1.7]
+* libffmpeg: offset_pts now exists in vod_play_transcode.c, vid/aud_skip_comp_dts
 [libcodec2-1.1.6]
 * libffmpeg: disable video_pts_offset (MFT use?)
 * libffmpeg: add NALU_AUD for transmux only
