@@ -882,6 +882,7 @@ int EXPORTS MINGWAPI libffmpeg_set_video_offset(libffmpeg_t h, int64_t video_off
 {
 	libffmpeg_data *p = (libffmpeg_data *)h;	
 	//20160413: I have no idead why offset_pts exists, may be MFT H264 Encoder needed?
+	//20160422: offset_pts now exists in vod_play_transcode.c, vid/aud_skip_comp_dts
 	//if (p->vid_outbuf) {
 	//	p->vid_outbuf->header.pts = 0;
 	//	p->vid_outbuf->header.offset_pts = video_offset;
@@ -893,6 +894,7 @@ int EXPORTS MINGWAPI libffmpeg_set_audio_offset(libffmpeg_t h, int64_t audio_off
 {
 	libffmpeg_data *p = (libffmpeg_data *)h;
 	//20160413: I have no idead why offset_pts exists, may be MFT H264 Encoder needed?
+	//20160422: offset_pts now exists in vod_play_transcode.c, vid/aud_skip_comp_dts
 	//if (p->aud_outbuf) {
 	//	p->aud_outbuf->header.pts = 0;
 	//	p->aud_outbuf->header.offset_pts = audio_offset;
