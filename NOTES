@@ -1,3 +1,5 @@
+[libcodec2-1.1.8]
+* ffmpeg.c: fixed AV_NO_PTS issue (pseudo PTS)
 [libcodec2-1.1.7]
 * libffmpeg: offset_pts now exists in vod_play_transcode.c, vid/aud_skip_comp_dts
 [libcodec2-1.1.6]
