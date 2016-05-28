@@ -86,6 +86,8 @@ typedef struct {
 	struct SwsContext *vid_cvrt;
 	int is_vid_first_frame;
 	int64_t vid_dts;
+	int no_vid_pts;
+	double seek_secs;
 
 	ff_codec aud;
 	int audio_failed_decode_count;
@@ -132,12 +134,13 @@ static int ff_codec_close(ff_codec *c)
 	return 0;
 }
 
-static int ff_codec_open(enum AVMediaType type, AVFormatContext *fmt_ctx, ff_codec *c, int decode_threads)
+static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatContext *fmt_ctx, ff_codec *c, int decode_threads)
 {
 	int ret;
 	AVStream *st;
 	AVCodec *dec = NULL;
 	AVDictionary *opts = NULL;
+	AVRational r_frame_rate ;
 
 	if ((ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0)) <0) {
 		libffmpeg_setmsg("Could not find %s stream", av_get_media_type_string(type));
@@ -166,6 +169,9 @@ static int ff_codec_open(enum AVMediaType type, AVFormatContext *fmt_ctx, ff_cod
 	c->dec_time_base = st->codec->time_base;
 
 	if (c->dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+		memset(&r_frame_rate, 0, sizeof(r_frame_rate));
+		r_frame_rate = av_stream_get_r_frame_rate(st);
+
 		c->pix_fmt = c->dec_ctx->pix_fmt;
 
 		c->width =  c->dec_ctx->width;
@@ -176,13 +182,16 @@ static int ff_codec_open(enum AVMediaType type, AVFormatContext *fmt_ctx, ff_cod
 			c->height = c->dec_ctx->coded_height;
 		}
 
-		if (st->avg_frame_rate.den && st->avg_frame_rate.num) {
+		fflog(p->log, "fps1 %d %d = %f", st->avg_frame_rate.num, st->avg_frame_rate.den, st->avg_frame_rate.num/(double)st->avg_frame_rate.den);
+		fflog(p->log, "fps2 %d %d = %f", r_frame_rate.num, r_frame_rate.den, r_frame_rate.num/(double)r_frame_rate.den);
+
+		if (r_frame_rate.den && r_frame_rate.num) {
+			c->fps_num = st->r_frame_rate.num;
+			c->fps_den = st->r_frame_rate.den;
+		} else if (st->avg_frame_rate.den && st->avg_frame_rate.num) {
 			//c->fps = (int)(av_q2d(st->avg_frame_rate) + 0.5f);
 			c->fps_num = st->avg_frame_rate.num;
 			c->fps_den = st->avg_frame_rate.den;
-		} else if (st->r_frame_rate.den && st->r_frame_rate.num) {
-			c->fps_num = st->r_frame_rate.num;
-			c->fps_den = st->r_frame_rate.den;
 		} else {
 			libffmpeg_setmsg("failed to get frame rate");
 			goto error;
@@ -268,7 +277,7 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 		goto openaudio;
 	}
 
-	if (ff_codec_open(AVMEDIA_TYPE_VIDEO, p->fmt_ctx, &p->vid, cfg->decode_threads) == 0) {
+	if (ff_codec_open(p, AVMEDIA_TYPE_VIDEO, p->fmt_ctx, &p->vid, cfg->decode_threads) == 0) {
 		cfg->width = p->vid.width;
 		cfg->height = p->vid.height;
 		cfg->fps_num = p->vid.fps_num;
@@ -321,7 +330,7 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 	}
 
 openaudio:
-	if (ff_codec_open(AVMEDIA_TYPE_AUDIO, p->fmt_ctx, &p->aud, cfg->decode_threads) == 0) {
+	if (ff_codec_open(p, AVMEDIA_TYPE_AUDIO, p->fmt_ctx, &p->aud, cfg->decode_threads) == 0) {
 		cfg->audio_type = FIREFLY_TYPE_PCM;
 		cfg->sample_rate = p->sample_rate = 44100;
 		cfg->bit_rate = 16;
@@ -530,15 +539,21 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 		av_free(newpkt.data);
 	}
 
-	pts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
-	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
+	if (p->no_vid_pts) {
+		outbuf->header.pts = p->vid_dts;
+		pts = firefly_video_pts(outbuf);
+	} else {
+		pts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+		outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
+	}
+
 	outbuf->header.dts = p->vid_dts;
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
-		printf("[VID] org_pts:%f != new_pts:%f\n", pts, firefly_video_pts(outbuf));
-		printf("\t%f x %f = %d\n", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
-		printf("\t%d / %f = %f\n"
+		fflog(p->log,"[VID] org_pts:%f != new_pts:%f", pts, firefly_video_pts(outbuf));
+		fflog(p->log,"\t%f x %f = %d", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
+		fflog(p->log,"\t%d / %f = %f"
 			, (int)(pts*p->vid.fps_f)
 			, p->vid.fps_f
 			, firefly_video_pts(outbuf));
@@ -603,9 +618,9 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
-		printf("[VID] org_pts:%f != new_pts:%f\n", pts, firefly_video_pts(outbuf));
-		printf("\t%f x %f = %d\n", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
-		printf("\t%d / %f = %f\n"
+		fflog(p->log,"[VID] org_pts:%f != new_pts:%f", pts, firefly_video_pts(outbuf));
+		fflog(p->log,"\t%f x %f = %d", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
+		fflog(p->log,"\t%d / %f = %f"
 			, (int)(pts*p->vid.fps_f)
 			, p->vid.fps_f
 			, firefly_video_pts(outbuf));
@@ -712,9 +727,9 @@ static int ff_decode_audio(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	//printf("[%d] aud pts: %f, num_frame:%d\n", *cc, pts, *num_frame);
 
 	if (double_equals(firefly_audio_pts(outbuf), pts, 0.001) == 0) {
-		printf("[AUD] org_pts:%f != new_pts:%f\n", pts, firefly_audio_pts(outbuf));
-		printf("\t%f x %d = %d\n", pts, p->aud.sample_rate, (int)(pts*p->aud.sample_rate));
-		printf("\t%"PRId64 "/ %d = %f\n"
+		fflog(p->log, "[AUD] org_pts:%f != new_pts:%f", pts, firefly_audio_pts(outbuf));
+		fflog(p->log, "\t%f x %d = %d", pts, p->aud.sample_rate, (int)(pts*p->aud.sample_rate));
+		fflog(p->log, "\t%"PRId64 "/ %d = %f"
 			, outbuf->header.pts
 			, p->sample_rate
 			, outbuf->header.pts / (double)p->sample_rate);
@@ -784,8 +799,16 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 
 		//record first frame as DTS start, because first Frame is I frame
 		if (p->is_vid_first_frame) {
-			dts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
-			p->vid_dts = ff_video_ts_mapping(dts, p->vid.fps_f);
+			if (p->no_vid_pts || p->pkt.pts == AV_NOPTS_VALUE) {
+				p->vid_dts = ff_video_ts_mapping(p->seek_secs, p->vid.fps_f);
+				if (p->no_vid_pts == 0) {
+					fflog(p->log, "NOPTS FAKE DTS/PTS %"PRId64, p->vid_dts);
+				}
+				p->no_vid_pts = 1;
+			} else {
+				dts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+				p->vid_dts = ff_video_ts_mapping(dts, p->vid.fps_f);
+			}
 			p->is_vid_first_frame = 0;
 			fflog(p->log, "FIRST DTS: %"PRId64, p->vid_dts);
 		}
@@ -872,6 +895,8 @@ int EXPORTS MINGWAPI libffmpeg_seek(libffmpeg_t h, void *p1, void *p2)
 	p->is_vid_first_frame = 1;
 	p->vid_dts = 0;
 	p->num_frame = 0;
+	p->seek_secs = secs;
+	p->no_vid_pts = 0;
 	ff_buffer_reset(p->aud_buf);
 	return 0;
 error:
