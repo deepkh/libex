@@ -65,7 +65,7 @@ int EXPORTS MINGWAPI libfdkaac_enc_open(libfdkaac_enc_t *h
 												//1: WAVE file format channel ordering (e. g. 5.1: L, R, C, LFE, SL, SR).
 	vbr = out_vbr ? 8 : 0;						//0: constant , 8: vbr
 	bit_stream_format = out_bitstream_fmt;		//0:RAW 1: ADIF (for mp4) 2: ADTS (for MPEG-2 AAC LC), 6,7:LATM
-	afterburner = 0;//1;							//0: disable, 1: enable. increase audio quality
+	afterburner = 0;//1;						//0: disable, 1: enable. increase audio quality
 
 	//0x01 meain only AAC LC
 	//0x00 default is AAC+SBR+PS (HE-AAC v2)
