@@ -1,3 +1,5 @@
+[libcodec2-1.1.9]
+* fdkaac: set afterburner to 0 for better performance on ARMv7 platform
 [libcodec2-1.1.8]
 * ffmpeg.c: fixed AV_NO_PTS issue (pseudo PTS)
 [libcodec2-1.1.7]
