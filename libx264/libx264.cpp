@@ -26,9 +26,11 @@ enum FIREFLY_TYPE {
 	FIREFLY_TYPE_YUV422P,
 	FIREFLY_TYPE_YUV444P,
 	FIREFLY_TYPE_X264,
-	FIREFLY_TYPE_TS_STREAM = 20
+	FIREFLY_TYPE_X265,
+	FIREFLY_TYPE_TS_STREAM = 20,
+	FIREFLY_TYPE_SRT = 30,
+	FIREFLY_TYPE_VTT = 31
 };
-
 typedef enum {
 	FIREFLY_X264_MODE_ABR = 0,			//Average Bit Rate (Most for streaming)
 	FIREFLY_X264_MODE_CRF = 1,			//Constant Rate Factory (Most for save as file). Ie: constant quality

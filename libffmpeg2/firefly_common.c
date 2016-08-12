@@ -120,7 +120,7 @@ int firefly_frame_set_video_plane(firefly_buffer *p, uint8_t *buf)
 	int height = p->header.height;
 	int wxh = width*height;
 
-	if ((p->header.type == FIREFLY_TYPE_RGB24) || (p->header.type == FIREFLY_TYPE_RGB32) || (p->header.type == FIREFLY_TYPE_X264)) {
+	if ((p->header.type == FIREFLY_TYPE_RGB24) || (p->header.type == FIREFLY_TYPE_RGB32) || (p->header.type == FIREFLY_TYPE_X264) || (p->header.type == FIREFLY_TYPE_X265) ) {
 		p->plane[0] = buf;
 	} else if (p->header.type == FIREFLY_TYPE_YUV420P) {
 		p->plane[0] = buf;
@@ -151,7 +151,7 @@ int firefly_frame_set_video_header(firefly_buffer *p
 	p->header.fps_f = (double)fps_num/(double)fps_den;
 	p->buf_alloc_inside = buf_alloc_inside;
 
-	if (type == FIREFLY_TYPE_RGB32 || type == FIREFLY_TYPE_X264) {
+	if (type == FIREFLY_TYPE_RGB32 || type == FIREFLY_TYPE_X264 || type == FIREFLY_TYPE_X265) {
 		p->header.bit_per_sample = 32;
 		p->buf_size = width*height*4;
 		p->buf_max_size = p->buf_size;
@@ -350,7 +350,8 @@ void ff_prt_hex(uint8_t *pb, int cb, int len)
 		}
 		sprintf(line + strlen(line), "%02X ", pb[i]);
 	}
-	printf("%s\n", line);
+	fprintf(stderr, "%s\n", line);
+	fflush(stderr);
 
 	free(line);
 }

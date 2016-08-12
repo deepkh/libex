@@ -57,6 +57,7 @@ typedef struct {
 	AVRational st_time_base;
 	AVRational dec_time_base;
 	AVBitStreamFilterContext *h264_bsfc;
+	AVCodecParserContext *parser;			//for h264/h265
 
 	//video
 	enum AVPixelFormat pix_fmt;				//AV_PIX_FMT_YUV420P...
@@ -128,6 +129,10 @@ static int ff_codec_close(ff_codec *c)
 			av_bitstream_filter_close(c->h264_bsfc);
 			c->h264_bsfc = NULL;
 		}
+		if(c->parser) {
+			av_parser_close(c->parser);
+			c->parser = NULL;
+		}
 		avcodec_close(c->dec_ctx);
 		c->dec_ctx = NULL;
 	}
@@ -176,6 +181,10 @@ static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatConte
 
 		c->width =  c->dec_ctx->width;
 		c->height =  c->dec_ctx->height;
+
+		fflog(p->log, "wh:%dx%d, coded_wh:%dx%d"
+			, c->width, c->height
+			, c->dec_ctx->coded_width, c->dec_ctx->coded_height);
 
 		if (c->dec_ctx->coded_width > 0 && c->dec_ctx->coded_height > 0) {
 			c->width = c->dec_ctx->coded_width;
@@ -230,6 +239,77 @@ static int get_swscale_method(char *str)
 		}
 	}
 	return SWS_FAST_BILINEAR;
+}
+
+static int ff_codec_init_parser(libffmpeg_data *p)
+{
+	AVPacket newpkt;
+	int with_annex_b = 0;
+	int ret;
+	double pts;
+
+	int found_sps = 0;
+	int found_pps = 0;
+	int found_aud = 0;
+	int nalu_type;
+
+	uint8_t* data;
+	int size;
+	int len;
+
+	while(1) {
+		if (av_read_frame(p->fmt_ctx, &p->pkt) < 0) {
+			libffmpeg_setmsg("END of file");
+			goto error;
+		}
+
+		if (p->pkt.stream_index != p->vid.idx) {
+			continue;
+		}
+
+		memset(&newpkt, 0, sizeof(newpkt));
+
+		if ((ret = av_bitstream_filter_filter(p->vid.h264_bsfc,
+			p->vid.dec_ctx, "dont care",
+			&(newpkt.data), &(newpkt.size),
+			p->pkt.data, p->pkt.size, 0)) > 0) {
+			with_annex_b = 1;
+		} else {
+			newpkt.data = p->pkt.data;
+			newpkt.size = p->pkt.size;
+		}
+
+		ff_prt_hex(newpkt.data, newpkt.size, newpkt.size);
+
+		len = av_parser_parse2(p->vid.parser, p->vid.dec_ctx, &data, &size
+			,newpkt.data, newpkt.size, newpkt.pts, newpkt.dts, newpkt.pos);
+
+		fflog(p->log, "len:%d data:%p size:%d newpkt.data:%p newpkt.size:%d"
+			, len, data, size, newpkt.data, newpkt.size);
+		if (with_annex_b) {
+			av_free(newpkt.data);
+		}
+
+		if (size == 0 && len > 0) {
+			fflog(p->log, "need more bytes");
+			continue;
+		}
+
+		fflog(p->log, "coded_width:%d coded_height:%d width:%d height:%d"
+			, p->vid.parser->coded_width, p->vid.parser->coded_height
+			, p->vid.parser->width , p->vid.parser->height);
+
+		break;
+	}
+
+	if (av_seek_frame(p->fmt_ctx, p->vid.idx, 0, AVSEEK_FLAG_BACKWARD) < 0){
+		libffmpeg_setmsg("failed to seek begin of file");
+		goto error;
+	}
+
+	return 0;
+error:
+	return -1;
 }
 
 int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libffmpeg_log log)
@@ -302,6 +382,27 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 				libffmpeg_setmsg("failed to init filter of h264_mp4toannexb");
 				goto error;
 			}
+#if 1
+		} else if (cfg->disable_decode_h264 
+			&& p->vid.dec_ctx->codec_id == AV_CODEC_ID_HEVC
+			&& (p->vid.pix_fmt == AV_PIX_FMT_YUV420P )) {
+			cfg->video_type = FIREFLY_TYPE_X265;
+
+			if ((p->vid_outbuf = firefly_frame_video_calloc(
+				(enum FIREFLY_TYPE) cfg->video_type, DEFAULT_VIDEO_TRACK_ID
+				, cfg->width, cfg->height, cfg->fps_num, cfg->fps_den, 1)) == NULL) {
+				libffmpeg_setmsg("failed to calloc video frame %dx%d", cfg->width, cfg->height);
+				goto error;
+			}
+
+			// HEVC NALU Annex-B*/
+			if ((p->vid.h264_bsfc = av_bitstream_filter_init("hevc_mp4toannexb")) == NULL) {
+				libffmpeg_setmsg("failed to init filter of hevc_mp4toannexb");
+				goto error;
+			}
+
+			fflog(p->log, "p->vid.h264_bsfc: %p", p->vid.h264_bsfc);
+#endif
 		} else {
 			cfg->disable_decode_h264 = 0;
 			cfg->video_type = FIREFLY_TYPE_YUV420P;
@@ -327,6 +428,15 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 				goto error;
 			}
 		}
+#if 0
+		//only for HW decoding
+		if (p->vid.h264_bsfc) {
+			if ((p->vid.parser = av_parser_init(p->vid.dec_ctx->codec_id)) == NULL) {
+				libffmpeg_setmsg("failed to av_parser_init %d ", p->vid.dec_ctx->codec_id);
+				goto error;
+			}
+		}
+#endif
 	}
 
 openaudio:
@@ -393,8 +503,8 @@ finally:
 	}
 
 	if (cfg->video_type) {
-		fflog(p->log, "%dx%d,%s,%s,%f"
-			, p->vid.width, p->vid.height, p->vid.dec_ctx->codec->name, av_get_pix_fmt_name(p->vid.pix_fmt)
+		fflog(p->log, "%s %dx%d,%s,%f"
+			, p->vid.dec_ctx->codec->name, p->vid.width, p->vid.height, av_get_pix_fmt_name(p->vid.pix_fmt)
 			, (double)p->vid.fps_num / (double)p->vid.fps_den);
 	} else if (cfg->video_type == 0) {
 		cfg->audio_only = 1;
@@ -409,6 +519,13 @@ finally:
 	av_init_packet(&p->pkt);
 	p->pkt.data = NULL;
 	p->pkt.size = 0;
+
+#if 0
+	//init parser, read first frame to parse coded_width, codec_height from NALU
+	if (ff_codec_init_parser(p)) {
+		goto error;
+	}
+#endif
 
 	*h = p;
 	return 0;
@@ -501,7 +618,6 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 #endif
 
 	memset(&newpkt, 0, sizeof(newpkt));
-
 	if ((ret = av_bitstream_filter_filter(p->vid.h264_bsfc,
 		p->vid.dec_ctx, "dont care",
 		&(newpkt.data), &(newpkt.size),
@@ -511,6 +627,9 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 		newpkt.data = p->pkt.data;
 		newpkt.size = p->pkt.size;
 	}
+
+//	printf("newpkt.size :%d\n", newpkt.size);
+//	fflush(stdout);
 
 	if (p->cfg->enable_aud) {
 		nalu_type = ff_get_nalu_type2(newpkt.data, newpkt.size, &found_sps, &found_pps, &found_aud);
@@ -1014,9 +1133,9 @@ int EXPORTS MINGWAPI libffmpeg_video_scaling(
 	
 	if ((sws = sws_getContext(
 		in_width, in_height
-		, PIX_FMT_YUV420P
+		, AV_PIX_FMT_YUV420P
 		, out_width, out_height
-		, PIX_FMT_YUV420P
+		, AV_PIX_FMT_YUV420P
 		, SWS_POINT/*SWS_BILINEAR*/, NULL, NULL, NULL)) == NULL) {
 		libffmpeg_setmsg("failed to sws_getContext");
 		goto error;
