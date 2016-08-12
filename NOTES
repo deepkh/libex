@@ -1,3 +1,9 @@
+[libcodec2-1.2.0]
+* ffmpeg: support HEVC/H.265 for decoder
+* ffmpeg: add parser function, but current are not use
+* ffmpeg: add FIREFLY_TYPE_X265
+* x264: add FIREFLY_TYPE_X265
+
 [libcodec2-1.1.9]
 * fdkaac: set afterburner to 0 for better performance on ARMv7 platform
 [libcodec2-1.1.8]
