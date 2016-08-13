@@ -1,3 +1,8 @@
+[libcodec2-1.2.1]
+* ffmpeg: workaround for some ambiguous framerate, using avg_frame_rate
+* instead. it's means on Elecard_about_Tomsk_part3_HEVC_UHD.mp4 you got FPS =
+* 90000/1, but so wired. 
+
 [libcodec2-1.2.0]
 * ffmpeg: support HEVC/H.265 for decoder
 * ffmpeg: add parser function, but current are not use
