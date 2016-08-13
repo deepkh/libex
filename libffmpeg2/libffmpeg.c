@@ -194,7 +194,8 @@ static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatConte
 		fflog(p->log, "fps1 %d %d = %f", st->avg_frame_rate.num, st->avg_frame_rate.den, st->avg_frame_rate.num/(double)st->avg_frame_rate.den);
 		fflog(p->log, "fps2 %d %d = %f", r_frame_rate.num, r_frame_rate.den, r_frame_rate.num/(double)r_frame_rate.den);
 
-		if (r_frame_rate.den && r_frame_rate.num) {
+		if (r_frame_rate.den && r_frame_rate.num 
+			&& !(r_frame_rate.num == 90000 && r_frame_rate.den == 1)) { //workaround for some ambiguous framerate, using avg_frame_rate instead Elecard_about_Tomsk_part3_HEVC_UHD.mp4
 			c->fps_num = st->r_frame_rate.num;
 			c->fps_den = st->r_frame_rate.den;
 		} else if (st->avg_frame_rate.den && st->avg_frame_rate.num) {
@@ -719,7 +720,6 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	}
 
 	if (!got_frame) {
-		printf("\n");
 		goto finally;
 	}
 
