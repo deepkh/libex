@@ -1,3 +1,6 @@
+[libcodec-1.2.2]
+* ffmpeg: support QSV, NVENC HEVC Main 10 HW decoding
+
 [libcodec2-1.2.1]
 * ffmpeg: workaround for some ambiguous framerate, using avg_frame_rate
 * instead. it's means on Elecard_about_Tomsk_part3_HEVC_UHD.mp4 you got FPS =
