@@ -32,6 +32,7 @@ typedef struct {
 	
 	//video out
 	int video_type;					//FIREFLY_TYPE_X264 or FIREFLY_TYPE_YUV420P
+	int bit_depth_minus8;			//if yuv10bit then fill 2, if yuv8bit then fill 0, most for HEVC Main 10bit(AV_PIX_FMT_YUV420P10LE)
 	int width;
 	int height;
 	int fps_num;

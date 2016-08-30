@@ -386,8 +386,13 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 #if 1
 		} else if (cfg->disable_decode_h264 
 			&& p->vid.dec_ctx->codec_id == AV_CODEC_ID_HEVC
-			&& (p->vid.pix_fmt == AV_PIX_FMT_YUV420P )) {
+			&& (p->vid.pix_fmt == AV_PIX_FMT_YUV420P || p->vid.pix_fmt == AV_PIX_FMT_YUV420P10LE)) {
 			cfg->video_type = FIREFLY_TYPE_X265;
+			
+			//HEVC Main 10, but yuv format still YUV420P
+			if (p->vid.pix_fmt == AV_PIX_FMT_YUV420P10LE) {
+				cfg->bit_depth_minus8 = 2;
+			}
 
 			if ((p->vid_outbuf = firefly_frame_video_calloc(
 				(enum FIREFLY_TYPE) cfg->video_type, DEFAULT_VIDEO_TRACK_ID
@@ -690,6 +695,7 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 
 	uint8_t **in_vid_plane;
 	int32_t *in_vid_stride;
+//	static int already_prt = 0;
 
 #if 0
 	{
@@ -751,11 +757,25 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 			, (const uint8_t **)in_vid_plane, in_vid_stride
 			, 0, p->vid.height
 			, outbuf->plane, outbuf->stride);
+#if 0
+		if (already_prt++ == 0) {
+		fflog(p->log, "sws in_stide:%d %d %d out_stride:%d %d %d wh:%d"
+			, in_vid_stride[0], in_vid_stride[1], in_vid_stride[2]
+			, outbuf->stride[0], outbuf->stride[1], outbuf->stride[2]
+			, p->vid.width, p->vid.height);
+		}
+#endif
 	} else {
 		av_image_copy(
 			outbuf->plane, outbuf->stride,
 			(const uint8_t **)(in_vid_plane), in_vid_stride,
 			p->vid.pix_fmt, p->vid.width, p->vid.height);
+#if 0
+		fflog(p->log, "in_stide:%d %d %d out_stride:%d %d %d wh:%d"
+			, in_vid_stride[0], in_vid_stride[1], in_vid_stride[2]
+			, outbuf->stride[0], outbuf->stride[1], outbuf->stride[2]
+			, p->vid.width, p->vid.height);
+#endif
 	}
 
 	return 1;
