@@ -16,6 +16,9 @@
 #include <libavutil/pixdesc.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/opt.h>
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +53,7 @@ enum {
 #define MSDK_ALIGN64(value)                      (((value + 63) >> 6) << 6) // round up to a multiple of 64
 
 static int libffmpeg_init = 0;
+static int libffmpeg_avfilter_init = 0;
 
 typedef struct {
 	int idx;
@@ -86,7 +90,7 @@ typedef struct {
 	int video_failed_decode_count;
 	struct SwsContext *vid_cvrt;
 	int is_vid_first_frame;
-	int64_t vid_dts;
+	int64_t first_vid_dts;
 	int no_vid_pts;
 	double seek_secs;
 
@@ -96,6 +100,8 @@ typedef struct {
 	SwrContext *aud_cvrt;
 
 	// aud tmp buf
+	int is_aud_first_frame;
+	int64_t first_aud_pts;
 	struct ff_buffer *aud_buf;
 	int64_t pts;
 	int32_t num_frame;
@@ -241,7 +247,7 @@ static int get_swscale_method(char *str)
 	}
 	return SWS_FAST_BILINEAR;
 }
-
+#if 0
 static int ff_codec_init_parser(libffmpeg_data *p)
 {
 	AVPacket newpkt;
@@ -312,6 +318,7 @@ static int ff_codec_init_parser(libffmpeg_data *p)
 error:
 	return -1;
 }
+#endif
 
 int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libffmpeg_log log)
 {
@@ -447,6 +454,7 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 
 openaudio:
 	if (ff_codec_open(p, AVMEDIA_TYPE_AUDIO, p->fmt_ctx, &p->aud, cfg->decode_threads) == 0) {
+		p->is_aud_first_frame = 1;
 		cfg->audio_type = FIREFLY_TYPE_PCM;
 		cfg->sample_rate = p->sample_rate = 44100;
 		cfg->bit_rate = 16;
@@ -665,14 +673,14 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 	}
 
 	if (p->no_vid_pts) {
-		outbuf->header.pts = p->vid_dts;
+		outbuf->header.pts = p->first_vid_dts;
 		pts = firefly_video_pts(outbuf);
 	} else {
 		pts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
 		outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
 	}
 
-	outbuf->header.dts = p->vid_dts;
+	outbuf->header.dts = p->first_vid_dts;
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
@@ -739,7 +747,7 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	//printf("avframe pts:%f pkt_pts:%"PRId64" %.4f pkt_dts:%"PRId64" %.4f\n", pts, p->frame->pkt_pts, pts2, p->frame->pkt_dts, dts2);
 
 	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
-	outbuf->header.dts = ff_video_ts_mapping(p->vid_dts, p->vid.fps_f);
+	outbuf->header.dts = ff_video_ts_mapping(p->first_vid_dts, p->vid.fps_f);
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
@@ -863,6 +871,13 @@ static int ff_decode_audio(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	outbuf->header.num_frame += out_samples;
 	outbuf->buf_size = outbuf->header.num_frame * p->frame_size;
 
+	if (p->is_aud_first_frame) {
+		fflog(p->log, "aud first PTS %.3f %.3f"
+			, firefly_audio_pts(outbuf)
+			, pts);
+		p->is_aud_first_frame = 0;
+	}
+
 	//printf("[%d] aud pts: %f, num_frame:%d\n", *cc, pts, *num_frame);
 
 	if (double_equals(firefly_audio_pts(outbuf), pts, 0.001) == 0) {
@@ -939,17 +954,17 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 		//record first frame as DTS start, because first Frame is I frame
 		if (p->is_vid_first_frame) {
 			if (p->no_vid_pts || p->pkt.pts == AV_NOPTS_VALUE) {
-				p->vid_dts = ff_video_ts_mapping(p->seek_secs, p->vid.fps_f);
+				p->first_vid_dts = ff_video_ts_mapping(p->seek_secs, p->vid.fps_f);
 				if (p->no_vid_pts == 0) {
-					fflog(p->log, "NOPTS FAKE DTS/PTS %"PRId64, p->vid_dts);
+					fflog(p->log, "NOPTS FAKE DTS/PTS %"PRId64, p->first_vid_dts);
 				}
 				p->no_vid_pts = 1;
 			} else {
 				dts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
-				p->vid_dts = ff_video_ts_mapping(dts, p->vid.fps_f);
+				p->first_vid_dts = ff_video_ts_mapping(dts, p->vid.fps_f);
 			}
 			p->is_vid_first_frame = 0;
-			fflog(p->log, "FIRST DTS: %"PRId64, p->vid_dts);
+			fflog(p->log, "video first DTS: %"PRId64, p->first_vid_dts);
 		}
 
 		if (p->vid.h264_bsfc) {
@@ -958,7 +973,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 			ret = ff_decode_video(p, stream_idx, p->vid_outbuf);
 		}
 
-		p->vid_dts++;
+		p->first_vid_dts++;
 
 		if (ret < 0) {
 			goto error;
@@ -1032,7 +1047,9 @@ int EXPORTS MINGWAPI libffmpeg_seek(libffmpeg_t h, void *p1, void *p2)
 	}
 
 	p->is_vid_first_frame = 1;
-	p->vid_dts = 0;
+	p->is_aud_first_frame = 1;
+	p->first_vid_dts = 0;
+	p->first_aud_pts = 0;
 	p->num_frame = 0;
 	p->seek_secs = secs;
 	p->no_vid_pts = 0;
@@ -1044,7 +1061,7 @@ error:
 
 int EXPORTS MINGWAPI libffmpeg_set_video_offset(libffmpeg_t h, int64_t video_offset)
 {
-	libffmpeg_data *p = (libffmpeg_data *)h;	
+	//libffmpeg_data *p = (libffmpeg_data *)h;	
 	//20160413: I have no idead why offset_pts exists, may be MFT H264 Encoder needed?
 	//20160422: offset_pts now exists in vod_play_transcode.c, vid/aud_skip_comp_dts
 	//if (p->vid_outbuf) {
@@ -1056,7 +1073,7 @@ int EXPORTS MINGWAPI libffmpeg_set_video_offset(libffmpeg_t h, int64_t video_off
 
 int EXPORTS MINGWAPI libffmpeg_set_audio_offset(libffmpeg_t h, int64_t audio_offset)
 {
-	libffmpeg_data *p = (libffmpeg_data *)h;
+	//libffmpeg_data *p = (libffmpeg_data *)h;
 	//20160413: I have no idead why offset_pts exists, may be MFT H264 Encoder needed?
 	//20160422: offset_pts now exists in vod_play_transcode.c, vid/aud_skip_comp_dts
 	//if (p->aud_outbuf) {
@@ -1223,6 +1240,10 @@ static int ffmpeg_type_to_firefly(int type) {
 	return -1;
 }
 
+/***************************************************
+ * image scaling
+ **************************************************/
+
 int EXPORTS MINGWAPI libffmpeg_img_scale_open(libffmpeg_t *h, libffmpeg_img_scale_config *cfg, libffmpeg_log log)
 {
 	libffmpeg_img_scale_data *p = NULL;
@@ -1339,5 +1360,672 @@ int EXPORTS MINGWAPI libffmpeg_img_scale_close(libffmpeg_t h)
 
 	free(p);
 	return 0;
+}
+
+
+/***************************************************
+ * ADTS Header
+ **************************************************/
+
+typedef struct
+{
+  unsigned char *data;      /* data bits */
+  long numBit;          /* number of bits in buffer */
+  long size;            /* buffer size in bytes */
+  long currentBit;      /* current bit position in bit stream */
+  long numByte;         /* number of bytes read/written (only file) */
+} BitStream;
+
+static int GetSRIndex(unsigned int sampleRate)
+{
+	if (92017 <= sampleRate) return 0;
+	if (75132 <= sampleRate) return 1;
+	if (55426 <= sampleRate) return 2;
+	if (46009 <= sampleRate) return 3;
+	if (37566 <= sampleRate) return 4;
+	if (27713 <= sampleRate) return 5;
+	if (23004 <= sampleRate) return 6;
+	if (18783 <= sampleRate) return 7;
+	if (13856 <= sampleRate) return 8;
+	if (11502 <= sampleRate) return 9;
+	if (9391 <= sampleRate) return 10;
+	return 11;
+}
+
+/* size in bytes! */
+static int bs_init(BitStream *bitStream, unsigned char *buffer, int size)
+{
+	memset(bitStream, 0, sizeof(BitStream));
+    memset(buffer, 0, size);
+    bitStream->data = buffer;
+    bitStream->size = size;
+	return 0;
+}
+
+#define BYTE_NUMBIT 8       /* bits in byte (char) */
+#define bit2byte(a) (((a)+BYTE_NUMBIT-1)/BYTE_NUMBIT)
+
+static int bs_close(BitStream *bitStream)
+{
+    return bit2byte(bitStream->numBit);
+}
+
+static int bs_write_byte(BitStream *bitStream,
+                     unsigned long data,
+                     int numBit)
+{
+    long numUsed,idx;
+
+    idx = (bitStream->currentBit / BYTE_NUMBIT) % bitStream->size;
+    numUsed = bitStream->currentBit % BYTE_NUMBIT;
+    bitStream->data[idx] |= (data & ((1<<numBit)-1)) <<
+        (BYTE_NUMBIT-numUsed-numBit);
+    bitStream->currentBit += numBit;
+    bitStream->numBit = bitStream->currentBit;
+
+    return 0;
+}
+
+static int bs_put_bit(BitStream *bitStream,
+           unsigned long data,
+           int numBit)
+{
+    int num,maxNum,curNum;
+    unsigned long bits;
+
+    if (numBit == 0)
+        return 0;
+
+    /* write bits in packets according to buffer byte boundaries */
+    num = 0;
+    maxNum = BYTE_NUMBIT - bitStream->currentBit % BYTE_NUMBIT;
+    while (num < numBit) {
+        curNum = min(numBit-num,maxNum);
+        bits = data>>(numBit-num-curNum);
+        if (bs_write_byte(bitStream, bits, curNum)) {
+            return 1;
+        }
+        num += curNum;
+        maxNum = BYTE_NUMBIT;
+    }
+
+    return 0;
+}
+
+static int bs_byte_align(BitStream *bitStream, int writeFlag, int bitsSoFar)
+{
+    int len, i,j;
+
+    if (writeFlag)
+    {
+        len = bitStream->numBit;
+    } else {
+        len = bitsSoFar;
+    }
+
+    j = (8 - (len%8))%8;
+
+    if ((len % 8) == 0) j = 0;
+    if (writeFlag) {
+        for( i=0; i<j; i++ ) {
+            bs_put_bit(bitStream, 0, 1);
+        }
+    }
+    return j;
+}
+
+static void libffaac_enc_set_adts(uint8_t *buf, int len, int id, int object_type, int sample_rate, int channel)
+{
+	BitStream bitStream;
+
+	bs_init(&bitStream, buf, 7);
+
+	bs_put_bit(&bitStream, 0xFFFF, 12); /* 12 bit Syncword */
+	bs_put_bit(&bitStream, id, 1); /* ID == 0 for MPEG4 AAC, 1 for MPEG2 AAC */
+	bs_put_bit(&bitStream, 0, 2); /* layer == 0 */
+	bs_put_bit(&bitStream, 1, 1); /* protection absent */
+
+	bs_put_bit(&bitStream, object_type - 1, 2); /* AAC LC = 2, AAC SSR = 3 profile */
+	bs_put_bit(&bitStream, GetSRIndex(sample_rate), 4); /* sampling rate */
+	bs_put_bit(&bitStream, 0, 1); /* private bit */
+
+	bs_put_bit(&bitStream, channel, 3); /* ch. config (must be > 0) */
+												 /* simply using numChannels only works for
+													6 channels or less, else a channel
+													configuration should be written */
+	bs_put_bit(&bitStream, 0, 1); /* original/copy */
+	bs_put_bit(&bitStream, 0, 1); /* home */
+
+#if 0 // Removed in corrigendum 14496-3:2002
+	if (hEncoder->config.mpegVersion == 0)
+		bs_put_bit(&bitStream, 0, 2); /* emphasis */
+#endif
+
+	/* Variable ADTS header */
+	bs_put_bit(&bitStream, 0, 1); /* copyr. id. bit */
+	bs_put_bit(&bitStream, 0, 1); /* copyr. id. start */
+
+	bs_put_bit(&bitStream, len/*hEncoder->usedBytes*/, 13);
+	bs_put_bit(&bitStream, 0x7FF, 11); /* buffer fullness (0x7FF for VBR) */
+	bs_put_bit(&bitStream, 0, 2); /* raw data blocks (0+1=1) */
+
+	bs_byte_align(&bitStream, 1, 0);
+	bs_close(&bitStream);
+}
+
+static void libffaac_enc_set_adts_len(uint8_t *buf, int len)
+{
+	buf[3] = 0x80/*(2 << 6)*/ | (len >> 11);
+	buf[4] = (len >> 3) & 0xFF;
+	buf[5] = ((len & 7) << 5) | 0x1F; //((0x7FF >> 6) & 0x1F);
+}
+
+
+/***************************************************
+ * FFMPEG AAC Encoder
+ **************************************************/
+
+char g_szMsg3[8192];
+
+typedef struct {
+	AVCodecContext *aud_ctx;
+
+	/** audio filter graph */
+	AVFilterGraph *graph;
+    AVFilterContext *src;
+	AVFilterContext *sink;
+	
+	int frame_size;
+	uint8_t *in_frame;
+	int in_frame_num;
+	int in_frame_num_current;
+	int in_frame_size;
+	int in_sample_rate;
+
+	uint8_t *out_frame;					//AAC-LC
+	int out_frame_size;
+
+	int64_t frame_counter;
+} libffaac_enc_data;
+
+void logx(const char *fmt, ...)
+{
+	va_list args;
+	char szMsg[4096];
+
+	va_start(args, fmt);
+	vsprintf(szMsg, fmt, args);
+	va_end(args);
+	fprintf(stderr, szMsg);
+	fflush(stderr);
+}
+
+static const char *get_error_text(const int error)
+{
+    static char error_buffer[255];
+    av_strerror(error, error_buffer, sizeof(error_buffer));
+    return error_buffer;
+}
+
+static int init_filter_graph(AVFilterGraph **graph, AVFilterContext **src, AVFilterContext **sink
+	,int in_sample_fmt, int in_sample_rate, int64_t in_channel_layout
+	,int out_sample_fmt, int out_sample_rate, int64_t out_channel_layout
+	,char *volumn_str)
+{
+	AVFilterGraph *filter_graph;
+	AVFilterContext *abuffer_ctx;
+	AVFilter        *abuffer;
+	AVFilterContext *volume_ctx;
+	AVFilter        *volume;
+	AVFilterContext *aformat_ctx;
+	AVFilter        *aformat;
+	AVFilterContext *abuffersink_ctx;
+	AVFilter        *abuffersink;
+
+	AVDictionary *options_dict = NULL;
+	char options_str[1024];
+	char ch_layout[64];
+	int err;
+
+	/* Create a new filtergraph, which will contain all the filters. */
+	if ((filter_graph = avfilter_graph_alloc()) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_graph_alloc)");
+		goto error;
+	}
+
+	/* Create the abuffer filter;
+	 * it will be used for feeding the data into the graph. */
+	if ((abuffer = avfilter_get_by_name("abuffer")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_get_by_name)");
+		goto error;
+	}
+
+	if ((abuffer_ctx = avfilter_graph_alloc_filter(filter_graph, abuffer, "src")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_graph_alloc_filter)");
+		goto error;
+	}
+
+	/* Set the filter options through the AVOptions API. */
+	av_get_channel_layout_string(ch_layout, sizeof(ch_layout), 0, in_channel_layout);
+	av_opt_set    (abuffer_ctx, "channel_layout", ch_layout,                            AV_OPT_SEARCH_CHILDREN);
+	av_opt_set    (abuffer_ctx, "sample_fmt",     av_get_sample_fmt_name(in_sample_fmt), AV_OPT_SEARCH_CHILDREN);
+	av_opt_set_q  (abuffer_ctx, "time_base",      (AVRational){ 1, in_sample_rate },  AV_OPT_SEARCH_CHILDREN);
+	av_opt_set_int(abuffer_ctx, "sample_rate",    in_sample_rate,                     AV_OPT_SEARCH_CHILDREN);
+
+	/* Now initialize the filter; we pass NULL options, since we have already
+	 * set all the options above. */
+	if ((err = avfilter_init_str(abuffer_ctx, NULL)) < 0) {
+		libffaac_enc_setmsg("failed to avfilter_init_str)");
+		goto error;
+	}
+
+	/* Create volume filter. */
+	if ((volume = avfilter_get_by_name("volume")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_get_by_name)");
+		goto error;
+	}
+
+	if ((volume_ctx = avfilter_graph_alloc_filter(filter_graph, volume, "volume")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_graph_alloc_filter)");
+		goto error;
+	}
+
+#if 0
+	/* A different way of passing the options is as key/value pairs in a
+	 * dictionary. */
+	av_dict_set(&options_dict, "volume", AV_STRINGIFY(out_volume_ratio), 0);
+	err = avfilter_init_dict(volume_ctx, &options_dict);
+	av_dict_free(&options_dict);
+	if (err < 0) {
+		libffaac_enc_setmsg("failed to avfilter_init_dict");
+		goto error;
+	}
+#else
+	snprintf(options_str, sizeof(options_str),
+			 "volume=%s",
+			 volumn_str);
+	err = avfilter_init_str(volume_ctx, options_str);
+	if (err < 0) {
+		libffaac_enc_setmsg("failed to avfilter_init_str");
+		goto error;
+	}
+#endif
+
+	/* Create the aformat filter;
+	 * it ensures that the output is of the format we want. */
+	if ((aformat = avfilter_get_by_name("aformat")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_get_by_name)");
+		goto error;
+	}
+
+	if ((aformat_ctx = avfilter_graph_alloc_filter(filter_graph, aformat, "aformat")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_graph_alloc_filter)");
+		goto error;
+	}
+
+	/* A third way of passing the options is in a string of the form
+	 * key1=value1:key2=value2.... */
+	snprintf(options_str, sizeof(options_str),
+			 "sample_fmts=%s:sample_rates=%d:channel_layouts=0x%"PRIx64,
+			 av_get_sample_fmt_name(out_sample_fmt), out_sample_rate,
+			 (uint64_t)out_channel_layout);
+	err = avfilter_init_str(aformat_ctx, options_str);
+	if (err < 0) {
+		libffaac_enc_setmsg("failed to avfilter_init_str)");
+		goto error;
+	}
+
+	/* Finally create the abuffersink filter;
+	 * it will be used to get the filtered data out of the graph. */
+	if ((abuffersink = avfilter_get_by_name("abuffersink")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_get_by_name)");
+		goto error;
+	}
+
+	if ((abuffersink_ctx = avfilter_graph_alloc_filter(filter_graph, abuffersink, "sink")) == NULL) {
+		libffaac_enc_setmsg("failed to avfilter_graph_alloc_filter)");
+		goto error;
+	}
+
+	/* This filter takes no options. */
+	if ((err = avfilter_init_str(abuffersink_ctx, NULL)) < 0) {
+		libffaac_enc_setmsg("failed to avfilter_init_str)");
+		goto error;
+	}
+
+	/* Connect the filters;
+	 * in this simple case the filters just form a linear chain. */
+	err = avfilter_link(abuffer_ctx, 0, volume_ctx, 0);
+	if (err >= 0)
+		err = avfilter_link(volume_ctx, 0, aformat_ctx, 0);
+	if (err >= 0)
+		err = avfilter_link(aformat_ctx, 0, abuffersink_ctx, 0);
+	if (err < 0) {
+		libffaac_enc_setmsg("failed to avfilter_get_by_name)");
+		goto error;
+	}
+
+	/* Configure the graph. */
+	err = avfilter_graph_config(filter_graph, NULL);
+	if (err < 0) {
+		libffaac_enc_setmsg("failed to avfilter_graph_config");
+		goto error;
+	}
+
+	*graph = filter_graph;
+	*src   = abuffer_ctx;
+	*sink  = abuffersink_ctx;
+	return 0;
+error:
+	return -1;
+}
+
+
+int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
+	, int in_channels, int in_sample_rate, int in_bit_rate
+	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt)
+{
+	AVCodec *aud_dec = NULL;
+	libffaac_enc_data *p = NULL;
+	int ret;
+
+	if (!libffmpeg_init) {
+		av_register_all();
+		libffmpeg_init = 1;
+	}
+
+	if (!libffmpeg_avfilter_init) {
+		avfilter_register_all();
+		libffmpeg_avfilter_init = 1;
+	}
+
+	if (in_channels != 2) {
+		libffaac_enc_setmsg("failed to set in_channels: %d, only support 2 channel", in_channels);
+		goto error;
+	}
+	
+	if (in_sample_rate != 44100) {
+		libffaac_enc_setmsg("failed to set in_sample_rate: %d, only support 44100 ", in_sample_rate);
+		goto error;
+	}
+
+	if (in_bit_rate != 16) {
+		libffaac_enc_setmsg("failed to set in_bit_rate: %d, only support 16 bit", in_bit_rate);
+		goto error;
+	}
+	
+	if (out_vbr) {
+		libffaac_enc_setmsg("failed to set out_vbr: %d, only support constant mode", out_vbr);
+		goto error;
+	}
+	
+	//0:RAW 1: ADIF (for mp4) 2: ADTS (for MPEG-2 AAC LC), 6,7:LATM (refernce from fdkaac)
+	if (out_bitstream_fmt != 2) {
+		libffaac_enc_setmsg("failed to set out_bitstream_fmt: %d, only support ADTS fmt", out_bitstream_fmt);
+		goto error;
+	}
+
+	if ((p = (libffaac_enc_data*)ff_calloc(sizeof(libffaac_enc_data))) == NULL) {
+		libffaac_enc_setmsg("failed ff_calloc libffaac_enc_data");
+		goto error;
+	}
+
+	if ((aud_dec = avcodec_find_encoder(AV_CODEC_ID_AAC)) == NULL) {
+		libffaac_enc_setmsg("failed to found AAC Encoder");
+		goto error;
+	}
+
+	if ((p->aud_ctx = avcodec_alloc_context3(aud_dec)) == NULL) {
+		libffaac_enc_setmsg("failed to avcodec_alloc_context3");
+		goto error;
+	}
+
+	p->aud_ctx->codec_id = AV_CODEC_ID_AAC;
+	p->aud_ctx->profile = FF_PROFILE_AAC_LOW;
+	p->aud_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP; //only FDKAAC support AV_SAMPLE_FMT_S16
+	p->aud_ctx->sample_rate = in_sample_rate;  
+	p->aud_ctx->channels = in_channels;  
+	p->aud_ctx->channel_layout = av_get_default_channel_layout(in_channels);  
+	p->aud_ctx->bit_rate = out_bit_rate;
+	p->aud_ctx->time_base.den = in_sample_rate;
+    p->aud_ctx->time_base.num = 1;
+
+	/** Allow the use of the experimental AAC encoder (build-in AAC Encoder) */
+    p->aud_ctx->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+
+	/** Open the encoder for the audio stream to use it later. */
+	if ((ret = avcodec_open2(p->aud_ctx, aud_dec, NULL)) < 0) {
+		libffaac_enc_setmsg("failed to open output codec (%s')",get_error_text(ret));
+		goto error;
+	}
+
+	//logx("frame_size: %d\nin_sample_rate:%d\n", p->aud_ctx->frame_size, in_sample_rate);
+	p->frame_size = in_channels * (in_bit_rate/8);						//16bit per sample
+	p->in_frame_num = p->aud_ctx->frame_size;
+	p->in_frame_size = p->frame_size * p->in_frame_num;
+	p->in_sample_rate = in_sample_rate;
+	p->out_frame_size = 20480;
+
+	//IN S16
+	if ((p->in_frame = (uint8_t *) ff_calloc(p->in_frame_size)) == NULL) {
+		libffaac_enc_setmsg("failed to calloc in_frame buffer");
+		goto error;
+	}
+
+	//OUT Volume Adjusting + FMT convertor
+	if (init_filter_graph(&p->graph, &p->src, &p->sink
+	,AV_SAMPLE_FMT_S16, in_sample_rate, av_get_default_channel_layout(in_channels)
+	,AV_SAMPLE_FMT_FLTP, in_sample_rate, av_get_default_channel_layout(in_channels)
+	,"15dB")) {
+		goto error;
+	}
+
+	//OUT AAC-LC
+	if ((p->out_frame = (uint8_t *)	ff_calloc(p->out_frame_size)) == NULL) {
+		libffaac_enc_setmsg("failed to calloc out_frame buffer");
+		goto error;
+	}
+
+	/** set ADTS header only once, due to not change */
+	libffaac_enc_set_adts(p->out_frame, 0, 0, 2/** AAC LC*/, in_sample_rate, in_channels);
+
+	*enc_num_frame = p->in_frame_num;
+	*h = p;
+	return 0;
+error:
+	libffaac_enc_close(p);
+	return -1;
+}
+
+int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
+{
+	libffaac_enc_data *p = (libffaac_enc_data *)h;
+	int copy_frame;
+	int remain_frame;
+	int cvrt_frame_num;
+	AVPacket pkt;
+	int got_output;
+	int ret;
+	AVFrame *in_frame = NULL;
+	AVFrame *out_frame = NULL;
+	int c = 0;
+
+	if (enc->in_num_frame > p->in_frame_num) {
+		libffaac_enc_setmsg("%d over %d failed", enc->in_num_frame, p->in_frame_num);
+		return -1;
+	}
+
+	// less
+	if ((p->in_frame_num_current + enc->in_num_frame) < p->in_frame_num) {
+		memcpy(p->in_frame+p->in_frame_num_current*p->frame_size, enc->in_buf, enc->in_buf_size);
+		p->in_frame_num_current += enc->in_num_frame;
+		*enc->out_buf_size = 0;
+		*enc->out_buf = NULL;
+		*enc->out_num_frame = 0;
+		return 0;
+	}
+
+	//greater & equals
+	copy_frame = p->in_frame_num - p->in_frame_num_current;
+	memcpy(p->in_frame+p->in_frame_num_current*p->frame_size, enc->in_buf, copy_frame*p->frame_size);
+
+	//copy to AVFrame, because filter will unref AVFrame, so can't reused
+	if ((in_frame  = av_frame_alloc()) == NULL) {
+		libffaac_enc_setmsg("failed to av_frame_alloc ");
+		goto error;
+	}
+
+    in_frame->nb_samples     = p->aud_ctx->frame_size;
+    in_frame->channel_layout = AV_CH_LAYOUT_STEREO;
+    in_frame->format         = AV_SAMPLE_FMT_S16;
+    in_frame->sample_rate    = p->in_sample_rate;
+
+	if ((ret = av_frame_get_buffer(in_frame, 0)) < 0) {
+		libffaac_enc_setmsg("failed to allocate output frame samples (error '%s')",
+				get_error_text(ret));
+		goto error;
+	}
+
+	memcpy(in_frame->extended_data[0], p->in_frame, p->in_frame_num * p->frame_size);
+
+	//convert S16 to FLTP and Volume Up
+	if ((out_frame  = av_frame_alloc()) == NULL) {
+		libffaac_enc_setmsg("failed to av_frame_alloc ");
+		goto error;
+	}
+
+	/* Send the frame to the input of the filtergraph. */
+	if ((ret = av_buffersrc_add_frame(p->src, in_frame)) < 0) {
+		libffaac_enc_setmsg("failed to av_buffersrc_add_frame (error '%s')", get_error_text(ret));
+		goto error;
+	}
+
+	/* Get all the filtered output that is available. */
+	if (!(ret = av_buffersink_get_frame(p->sink, out_frame) >= 0)) {
+		libffaac_enc_setmsg("failed to av_buffersink_get_frame (error '%s')", get_error_text(ret));
+		goto error;
+	}
+
+	if (out_frame->nb_samples != p->in_frame_num) {
+		libffaac_enc_setmsg("failed to cvrt S16 to FLTP, cvrt_frame_num %d not eq %d"
+			, cvrt_frame_num, p->in_frame_num);
+		goto error;
+	}
+
+	av_init_packet(&pkt);
+	pkt.data = NULL;
+	pkt.size = 0;
+
+	//encode
+	if ((ret = avcodec_encode_audio2(p->aud_ctx, &pkt, out_frame, &got_output)) < 0) {  
+		libffaac_enc_setmsg("failed to avcodec_encode_audio2 AAC (error '%s')",
+				get_error_text(ret));
+		goto error;
+	}
+
+	if (!(got_output > 0)) {
+		//logx("no get frame\n");
+		*enc->out_buf_size = 0;
+		*enc->out_buf = NULL;
+		*enc->out_num_frame = 0;
+		goto copy_remain;
+	}
+
+	//logx("got_aac_frame: %d\n", pkt.size);
+	libffaac_enc_set_adts_len(p->out_frame, pkt.size+7);
+	memcpy(p->out_frame+7, pkt.data, pkt.size);
+
+	*enc->out_buf_size = pkt.size + 7;
+	*enc->out_pts = p->frame_counter;
+	*enc->out_buf = p->out_frame;
+	*enc->out_num_frame = p->in_frame_num;
+	p->frame_counter += p->in_frame_num;
+
+	av_free_packet(&pkt);
+copy_remain:
+
+	if (in_frame) {
+		av_frame_free(&in_frame);
+	}
+	if (out_frame) {
+		av_frame_free(&out_frame);
+	}
+
+	//copy remain bytes
+	remain_frame = enc->in_num_frame - copy_frame;
+	memcpy(p->in_frame, enc->in_buf+(copy_frame*p->frame_size), remain_frame*p->frame_size);
+	p->in_frame_num_current = remain_frame;
+	return 0;
+error:
+	if (in_frame) {
+		av_frame_free(&in_frame);
+	}
+	if (out_frame) {
+		av_frame_free(&out_frame);
+	}
+	return -1;
+}
+
+int EXPORTS MINGWAPI libffaac_enc_done(libffaac_enc_t h)
+{
+	return -1;
+}
+
+int EXPORTS MINGWAPI libffaac_enc_reset(libffaac_enc_t h)
+{
+	libffaac_enc_data *p = (libffaac_enc_data *)h;
+
+	if (!p) {
+		return -1;
+	}
+
+	p->in_frame_num_current = 0;
+	p->frame_counter = 0;
+	return 0;
+}
+
+int EXPORTS MINGWAPI libffaac_enc_close(libffaac_enc_t h)
+{
+	libffaac_enc_data *p = (libffaac_enc_data *) h;
+
+	if (!p) {
+		return -1;
+	}
+
+	if (p->aud_ctx) {
+		avcodec_close(p->aud_ctx);
+		p->aud_ctx = NULL;
+	}
+
+	if (p->in_frame) {
+		ff_free(p->in_frame);
+		p->in_frame = NULL;
+	}
+
+	if (p->out_frame) {
+		ff_free(p->out_frame);
+		p->out_frame = NULL;
+	}
+
+	if (p->graph) {
+		avfilter_graph_free(&p->graph);
+	}
+
+	ff_free(p);
+	return 0;
+}
+
+void EXPORTS MINGWAPI libffaac_enc_get_msg(char *msg)
+{
+	sprintf(msg, "%s", g_szMsg3);
+}
+
+void libffaac_enc_setmsg2(const char *file, int line, const char *fmt, ...)
+{
+	va_list args;
+	sprintf(g_szMsg3, "%s(%d): ", file, line);
+	va_start(args, fmt);
+	vsprintf(strlen(g_szMsg3) + g_szMsg3, fmt, args);
+	va_end(args);
 }
 

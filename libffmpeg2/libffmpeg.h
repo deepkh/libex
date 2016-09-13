@@ -61,6 +61,11 @@ void libffmpeg_setmsg2(const char *file, int line, const char *fmt, ...);
 void fflog2(const char *file, int line, libffmpeg_log log, const char *fmt, ...);
 #define fflog(log, fmt, ...) fflog2(__FILE__, __LINE__, log, fmt, ##__VA_ARGS__)
 
+
+
+/***************************************************
+ * sw_scale scaling
+ **************************************************/
 typedef struct {
 	char swscale_method[32];
 
@@ -84,5 +89,30 @@ int EXPORTS MINGWAPI libffmpeg_video_scaling(
 	int in_type, int in_width, int in_height, uint8_t **in_plane, int32_t *in_stride
 	, int out_type, int out_width, int out_height, uint8_t **out_plane, int32_t *out_stride
 );
+
+/***************************************************
+ * FFMPEG AAC Encoder
+ **************************************************/
+typedef struct {
+	uint8_t *in_buf;
+	int in_buf_size;
+	int in_num_frame;
+	uint8_t **out_buf;
+	int *out_buf_size;
+	int *out_num_frame;
+	int64_t *out_pts;
+} __attribute__((aligned (16))) libffaac_enc;
+
+typedef void *libffaac_enc_t;
+int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
+	, int in_channels, int in_sample_rate, int in_bit_rate
+	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt);
+int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc);
+int EXPORTS MINGWAPI libffaac_enc_done(libffaac_enc_t h);
+int EXPORTS MINGWAPI libffaac_enc_reset(libffaac_enc_t h);
+int EXPORTS MINGWAPI libffaac_enc_close(libffaac_enc_t h);
+void EXPORTS MINGWAPI libffaac_enc_get_msg(char *msg);
+void libffaac_enc_setmsg2(const char *file, int line, const char *fmt, ...);
+#define libffaac_enc_setmsg(fmt, ...) libffaac_enc_setmsg2(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
 #endif
