@@ -1,3 +1,7 @@
+[libcodec-1.2.3]
+* ffmpeg: add ffmpeg native AAC-LC Encoder
+* ffmpeg: add volume control filter
+
 [libcodec-1.2.2]
 * ffmpeg: support QSV, NVENC HEVC Main 10 HW decoding
 
