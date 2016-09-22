@@ -107,6 +107,14 @@ typedef struct {
 	int32_t num_frame;
 	int32_t frame_size;
 
+	//for sync video/audio if start PTS are not ZERO
+	int64_t init_vid_dts;
+	double init_vid_dts_secs;
+	double init_vid_dts_secs2;
+	int64_t init_aud_pts;
+	double init_aud_pts_secs;
+	int sync_audio_2;
+
 	firefly_buffer *vid_outbuf;
 	firefly_buffer *aud_outbuf;
 
@@ -247,6 +255,116 @@ static int get_swscale_method(char *str)
 	}
 	return SWS_FAST_BILINEAR;
 }
+
+//read first video DTS, and first audio PTS
+static int ff_codec_probe(libffmpeg_data *p, double origin_secs)
+{
+	int stream_idx = -1;
+	int found_vid_frame = 0;
+	int found_aud_frame = 0;
+	double pts;
+
+	int ret;
+	int got_frame = 0;
+	int64_t org_pts, org_dts;
+
+	if (p->vid.dec_ctx == NULL) {
+		found_vid_frame = 1;
+	}
+
+	if (p->aud.dec_ctx == NULL) {
+		found_aud_frame = 1;
+	}
+
+	while(found_vid_frame == 0 || found_aud_frame == 0) {
+		if (av_read_frame(p->fmt_ctx, &p->pkt) < 0) {
+			libffmpeg_setmsg("END of file");
+			goto error;
+		}
+		
+		stream_idx = p->pkt.stream_index;
+
+		if (found_vid_frame == 0 && p->vid.dec_ctx && (stream_idx == p->vid.idx)) {
+			//rescale
+			av_packet_rescale_ts(&p->pkt
+				, p->fmt_ctx->streams[stream_idx]->time_base
+				, p->fmt_ctx->streams[stream_idx]->codec->time_base);
+
+			if (p->pkt.pts == AV_NOPTS_VALUE) {
+				p->init_vid_dts = 0;
+				p->init_vid_dts_secs = 0.0f;
+				p->init_vid_dts_secs2 = 0.0f;
+			} else {
+				pts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+				p->init_vid_dts = ff_video_ts_mapping(pts, p->vid.fps_f);
+				p->init_vid_dts_secs = pts;
+				p->init_vid_dts_secs2 = pts;
+			}
+
+			found_vid_frame = 1;
+		} else if (found_aud_frame == 0 && p->aud.dec_ctx &&  stream_idx == p->aud.idx) {
+
+			/** ugly hack */
+			if (p->pkt.size > 8820000) {
+				libffmpeg_setmsg("audio buffer %d overflow", p->pkt.size);
+				goto error;
+			}
+
+			while (p->pkt.size > 0) {
+
+				org_pts = p->pkt.pts;
+				org_dts = p->pkt.dts;
+
+				av_packet_rescale_ts(&p->pkt
+					, p->fmt_ctx->streams[stream_idx]->time_base
+					, p->fmt_ctx->streams[stream_idx]->codec->time_base);
+				
+				if ((ret = avcodec_decode_audio4(p->fmt_ctx->streams[stream_idx]->codec, p->frame, &got_frame, &p->pkt)) < 0) {
+					libffmpeg_setmsg("failed to avcodec_decode_audio4 %d", ret);
+					goto error;
+				}
+
+				if (got_frame) {
+					pts = av_frame_get_best_effort_timestamp(p->frame) * av_q2d(p->fmt_ctx->streams[stream_idx]->codec->time_base);
+					p->init_aud_pts = ff_audio_ts_mapping(pts, p->sample_rate);
+					p->init_aud_pts_secs = pts;
+					break;
+				}
+				
+				p->pkt.data += ret;
+				p->pkt.size -= ret;
+				p->pkt.pts = org_pts;
+				p->pkt.dts = org_dts;
+			}
+
+			found_aud_frame = 1;
+		}
+
+		if (p->pkt.data /*&& p->pkt.size > 0*/) {
+			av_free_packet(&p->pkt);
+		}
+		p->pkt.data = NULL;
+		p->pkt.size = 0;
+	}
+
+	if (av_seek_frame(p->fmt_ctx, p->vid.idx, origin_secs, AVSEEK_FLAG_BACKWARD) < 0){
+		libffmpeg_setmsg("failed to seek begin of file");
+		goto error;
+	}
+
+	fflog(p->log, "init video dts: %f %"PRId64, p->init_vid_dts_secs, p->init_vid_dts);
+	fflog(p->log, "init audio pts: %f %"PRId64, p->init_aud_pts_secs, p->init_aud_pts);
+
+	return 0;
+error:
+	if (p->pkt.data /*&& p->pkt.size > 0*/) {
+		av_free_packet(&p->pkt);
+	}
+	p->pkt.data = NULL;
+	p->pkt.size = 0;
+	return -1;
+}
+
 #if 0
 static int ff_codec_init_parser(libffmpeg_data *p)
 {
@@ -324,6 +442,9 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 {
 	libffmpeg_data *p = NULL;
 	char tmp[96];
+	char *silence = NULL;
+	int silence_frame_num = 0;
+	int silence_size = 0;
 
 	if (!libffmpeg_init) {
 		av_register_all();
@@ -504,6 +625,7 @@ noaudio:
 
 finally:
 	cfg->duration = p->duration = p->fmt_ctx->duration / (double) AV_TIME_BASE;
+	fflog(p->log, "duration: %f", cfg->duration);
 	//av_dump_format(p->fmt_ctx, 0, cfg->file_name, 0);
 
 	if (!p->vid.dec_ctx && !p->aud.dec_ctx) {
@@ -541,6 +663,32 @@ finally:
 	}
 #endif
 
+	//probe: to get initial video/audio DTS/PTS
+	if (ff_codec_probe(p, 0.0f)) {
+		goto error;
+	}
+
+	//sync_audio_1: init_aud_pts > init_vid_pts insert_audio_frame. some file are not begining at 0 sec
+	if (p->aud.dec_ctx) {
+		if (p->init_aud_pts > 0 && (p->init_aud_pts_secs > p->init_vid_dts_secs)) {
+			silence_frame_num = (p->init_aud_pts_secs-p->init_vid_dts_secs) * p->sample_rate;
+			silence_size =  silence_frame_num * p->frame_size;
+			
+			p->num_frame = silence_frame_num;
+			p->pts = p->init_vid_dts_secs * p->sample_rate;
+			
+			if ((silence = ff_calloc(silence_size)) == NULL) {
+				libffmpeg_setmsg( "failed to ff_calloc %d", silence_size);
+				goto error;
+			}
+
+			//fflog(p->log, "sync_audio_1: insert audio frame %d. begin pts:%f %f %"PRId64, silence_frame_num, p->init_vid_dts_secs, p->pts/(double)p->sample_rate, p->pts);
+			ff_buffer_push(p->aud_buf, silence, silence_size);
+			ff_free(silence);
+			silence = NULL;
+		}
+	}
+	
 	*h = p;
 	return 0;
 error:
@@ -804,6 +952,8 @@ static int ff_decode_audio_flush_pcm(libffmpeg_data *p
 
 		ff_buffer_pop(p->aud_buf, (char *)outbuf->buf, ff_buffer_data_size(p->aud_buf));
 		outbuf->header.pts = p->pts;
+			
+		//fflog(p->log, "flush_pcm remain:%d pts:%f %"PRId64, p->num_frame, (p->pts)/(double)p->sample_rate, p->pts);
 
 		if (out_samples <= MAX_AAC_FRAME_SIZE) {
 			outbuf->header.num_frame = out_samples;
@@ -819,7 +969,6 @@ static int ff_decode_audio_flush_pcm(libffmpeg_data *p
 			p->pts = outbuf->header.pts + MAX_AAC_FRAME_SIZE;
 		}
 
-		//printf("flush %d remain %d\n", *num_frame, p->num_frame);
 		return 1;
 	}
 
@@ -918,7 +1067,8 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 {
 	libffmpeg_data *p = (libffmpeg_data *)h;
 	int stream_idx = -1;
-	int ret;
+	int ret2 = -1;
+	int ret = -1;
 	double dts;
 	
 	*in = NULL;
@@ -926,13 +1076,33 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 	if (p->aud.dec_ctx) {
 		if (ff_decode_audio_flush_pcm(p, p->aud_outbuf) == 1) {
 			/** got aud frame */
+			/** sync_audio_2: init_aud_pts < init_vid_pts skip_audio_frame. some file are not begining at 0 sec */
+			if (firefly_audio_pts(p->aud_outbuf) < p->init_vid_dts_secs2) {
+				//fflog(p->log, "sync_audio_2: skip audio frame %f < %f"
+				//	, firefly_audio_pts(p->aud_outbuf)
+				//	, p->init_vid_dts_secs2);
+				p->sync_audio_2 = 1;
+				goto finally;
+			} else {
+				if (p->sync_audio_2) {
+					p->num_frame = 0;
+					ff_buffer_reset(p->aud_buf);
+					p->sync_audio_2 = 0;
+				}
+			}
+			p->aud_outbuf->header.pts -= p->init_vid_dts_secs*(double)p->sample_rate;			//sync_pts_to_zero
 			*in = p->aud_outbuf;
 			goto finally;
 		}
 	}
 
-	if (av_read_frame(p->fmt_ctx, &p->pkt) < 0) {
-		libffmpeg_setmsg("END of file");
+	if ((ret = av_read_frame(p->fmt_ctx, &p->pkt)) < 0) {
+		if (ret == AVERROR_EOF) {
+			ret2 = FFMPEG_EOF;
+			libffmpeg_setmsg("END of file");
+		} else {
+			libffmpeg_setmsg("failed to av_read_frame %d", ret);
+		}
 		goto error;
 	}
 
@@ -964,7 +1134,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 				p->first_vid_dts = ff_video_ts_mapping(dts, p->vid.fps_f);
 			}
 			p->is_vid_first_frame = 0;
-			fflog(p->log, "video first DTS: %"PRId64, p->first_vid_dts);
+			fflog(p->log, "video first DTS: %.3f %"PRId64, p->first_vid_dts/(double)p->vid.fps_f, p->first_vid_dts);
 		}
 
 		if (p->vid.h264_bsfc) {
@@ -978,6 +1148,8 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 		if (ret < 0) {
 			goto error;
 		} else if (ret == 1) {
+			p->vid_outbuf->header.dts -= p->init_vid_dts;				//sync_pts_to_zero
+			p->vid_outbuf->header.pts -= p->init_vid_dts;				//sync_pts_to_zero
 			*in = p->vid_outbuf;
 		}
 	}else if (p->aud.dec_ctx &&  stream_idx == p->aud.idx) {
@@ -1007,6 +1179,21 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 		ff_decode_audio_split(p, p->aud_outbuf);
 	
 		if (p->aud_outbuf->header.num_frame > 0) {
+			/** sync_audio_2: init_aud_pts < init_vid_pts skip_audio_frame. some file are not begining at 0 sec */
+			if (firefly_audio_pts(p->aud_outbuf) < p->init_vid_dts_secs2) {
+				//fflog(p->log, "sync_audio_2: skip audio frame %f < %f"
+					//,firefly_audio_pts(p->aud_outbuf)
+					//, p->init_vid_dts_secs2);
+					p->sync_audio_2 = 1;
+				goto finally;
+			} else {
+				if (p->sync_audio_2) {
+					p->num_frame = 0;
+					ff_buffer_reset(p->aud_buf);
+					p->sync_audio_2 = 0;
+				}
+			}
+			p->aud_outbuf->header.pts -= p->init_vid_dts_secs*(double)p->sample_rate;			//sync_pts_to_zero
 			*in = p->aud_outbuf;
 		}
 	}
@@ -1024,18 +1211,28 @@ error:
 	}
 	p->pkt.data = NULL;
 	p->pkt.size = 0;
-	return -1;
+	return ret2;
 }
 
 int EXPORTS MINGWAPI libffmpeg_seek(libffmpeg_t h, void *p1, void *p2)
 {
 	libffmpeg_data *p = (libffmpeg_data *)h;
-	double secs = *((double *)p1);
+	/** we use audio to A/V sync, 
+	 * 		if aud_pts < vid_dts then skip audio frame
+	 * 		if aud_pts > vid_dts then insert audio frame
+	 * 		so the video dts is the based timestamp */
+	double secs = *((double *)p1); 
 	int64_t seek_base = 0;
 	AVRational avr;
 	
 	avr.num = 1;
 	avr.den = AV_TIME_BASE;
+
+	//fflog(p->log, "seek to: %f + %f = %f", p->init_vid_dts_secs, secs,  secs + p->init_vid_dts_secs);
+	//if initial PTS are not ZERO, when seeking if aud_pts < vid_pts, then we need to skip audio frame before 
+	//audio frame PTS >= video frame DTS
+	secs += p->init_vid_dts_secs;
+	p->init_vid_dts_secs2 = secs;
 
 	seek_base = av_rescale_q(
 		(int64_t)(secs * AV_TIME_BASE)
@@ -1582,7 +1779,7 @@ static int init_filter_graph(AVFilterGraph **graph, AVFilterContext **src, AVFil
 	AVFilterContext *abuffersink_ctx;
 	AVFilter        *abuffersink;
 
-	AVDictionary *options_dict = NULL;
+//	AVDictionary *options_dict = NULL;
 	char options_str[1024];
 	char ch_layout[64];
 	int err;
@@ -1842,13 +2039,11 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 	libffaac_enc_data *p = (libffaac_enc_data *)h;
 	int copy_frame;
 	int remain_frame;
-	int cvrt_frame_num;
 	AVPacket pkt;
 	int got_output;
 	int ret;
 	AVFrame *in_frame = NULL;
 	AVFrame *out_frame = NULL;
-	int c = 0;
 
 	if (enc->in_num_frame > p->in_frame_num) {
 		libffaac_enc_setmsg("%d over %d failed", enc->in_num_frame, p->in_frame_num);
@@ -1907,8 +2102,8 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 	}
 
 	if (out_frame->nb_samples != p->in_frame_num) {
-		libffaac_enc_setmsg("failed to cvrt S16 to FLTP, cvrt_frame_num %d not eq %d"
-			, cvrt_frame_num, p->in_frame_num);
+		libffaac_enc_setmsg("failed to cvrt S16 to FLTP, out_frame->nb_samples %d not eq p->in_frame_num %d"
+			, out_frame->nb_samples, p->in_frame_num);
 		goto error;
 	}
 

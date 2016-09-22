@@ -19,6 +19,12 @@
 
 #define DBG_MSG_LEN 1024
 
+enum FFMPEG {
+	FFMPEG_EOF = -10, 
+	FFMPEG_HW_DECODER_ERROR = -2, 
+	FFMPEG_HW_DECODER_DEVICE_ERROR = -100,	//MFX H.264 Decoder sometimes failed on 4790k HD4600, but not happend on 4720hq HD4600
+};
+
 typedef struct {
 	//in
 	const char *file_name;
