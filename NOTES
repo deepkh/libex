@@ -1,3 +1,45 @@
+[libcodec-1.2.4]
+* ffmpeg: add probe function to get initial video DTS and audio PTS
+* ffmpeg: sync_audio_1: init_aud_pts > init_vid_pts insert_audio_frame
+		in the begining of read_frame
+	10b4k25f_sample-Elysium.2013.2160p.mkv
+		11:19:57.562 libffmpeg.c(352): init video dts: 0.166833 4
+		11:19:57.562 libffmpeg.c(353): init audio pts: 0.169002 7453
+	Descendants.of.the.Sun.E01.1080p.HDTV.x264.AC3-DoA.mkv
+		11:45:14.030 libffmpeg.c(352): init video dts: 0.000000 0
+		11:45:14.030 libffmpeg.c(353): init audio pts: 1.132993 49965
+		11:45:14.030 libffmpeg.c(354): based_pts: 0.000000
+	Narcos.S01E01.720p.WEBRiP.x265.ShAaNiG.mkv
+		12:22:30.854 libffmpeg.c(357): init video dts: 0.000000 0
+		12:22:30.854 libffmpeg.c(358): init audio pts: 0.031000 1367
+		12:22:30.854 libffmpeg.c(359): based_pts: 0.000000
+	The.Vampire.Diaries.S04E11.720p.HDTV.X264-DIMENSION.mkv
+		12:24:11.615 libffmpeg.c(357): init video dts: 0.000000 0
+		12:24:11.615 libffmpeg.c(358): init audio pts: 0.100000 4410
+
+* ffmpeg: sync_audio_2: init_aud_pts < init_vid_pts skip_audio_frame
+	10b4k50fps_Jimix_Put_Your_Hands_Up.ts
+		11:17:00.486 libffmpeg.c(352): init video dts: 57500.020000 2875001
+		11:17:00.486 libffmpeg.c(353): init audio pts: 57498.900952 2535701532
+		11:17:00.486 libffmpeg.c(354): based_pts: 57500.020000
+	Creative.Control.2015.1080p.BluRay.AAC.5.1.x265-Tron.mkv
+		11:37:34.154 libffmpeg.c(352): init video dts: 0.083417 2
+		11:37:34.154 libffmpeg.c(353): init audio pts: 0.061995 2734
+		11:37:34.154 libffmpeg.c(354): based_pts: 0.083417
+	A.Servant.Of.Two.Masters.EP01.HDTV.1080P.H264-SNG.mp4
+		11:42:23.473 libffmpeg.c(352): init video dts: 0.120000 3
+		11:42:23.473 libffmpeg.c(353): init audio pts: 0.000000 0
+		11:42:23.473 libffmpeg.c(354): based_pts: 0.120000
+	Mad.Men.S01E02.2007.1080p.Blu-ray.x265.10bit.AC3¢GcXcY.mkv
+		20:11:51.562 libffmpeg.c(353): init video dts: 0.125125 3
+		20:11:51.562 libffmpeg.c(354): init audio pts: 0.000000 0
+	Gone With The Wind 1939 1080p BluRay x264 AAC - Ozlem.mp4
+		20:14:51.310 libffmpeg.c(353): init video dts: 0.083417 2
+		20:14:51.310 libffmpeg.c(354): init audio pts: 0.000000 0
+	The Machinist.mp4
+		20:15:55.179 libffmpeg.c(353): init video dts: 0.041708 1
+		20:15:55.179 libffmpeg.c(354): init audio pts: 0.000000 0
+
 [libcodec-1.2.3]
 * ffmpeg: add ffmpeg native AAC-LC Encoder
 * ffmpeg: add volume control filter
