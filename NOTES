@@ -1,3 +1,7 @@
+[libcodec-1.2.5]
+ffaac: add audio_gain (Dynamic Audio Normalizer) func
+fdkaac: add audio_gain func (Dynamic Audio Normalizer)
+
 [libcodec-1.2.4]
 * ffmpeg: add probe function to get initial video DTS and audio PTS
 * ffmpeg: sync_audio_1: init_aud_pts > init_vid_pts insert_audio_frame
