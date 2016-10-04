@@ -19,6 +19,7 @@
 #include <libavfilter/avfilter.h>
 #include <libavfilter/buffersink.h>
 #include <libavfilter/buffersrc.h>
+#include <libavutil/audio_fifo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1738,6 +1739,9 @@ typedef struct {
 	int in_frame_num_current;
 	int in_frame_size;
 	int in_sample_rate;
+	int in_audio_gain;
+
+	AVAudioFifo *aud_filter_fifo;
 
 	uint8_t *out_frame;					//AAC-LC
 	int out_frame_size;
@@ -1767,7 +1771,7 @@ static const char *get_error_text(const int error)
 static int init_filter_graph(AVFilterGraph **graph, AVFilterContext **src, AVFilterContext **sink
 	,int in_sample_fmt, int in_sample_rate, int64_t in_channel_layout
 	,int out_sample_fmt, int out_sample_rate, int64_t out_channel_layout
-	,char *volumn_str)
+	,int in_audio_gain)
 {
 	AVFilterGraph *filter_graph;
 	AVFilterContext *abuffer_ctx;
@@ -1817,36 +1821,38 @@ static int init_filter_graph(AVFilterGraph **graph, AVFilterContext **src, AVFil
 	}
 
 	/* Create volume filter. */
-	if ((volume = avfilter_get_by_name("volume")) == NULL) {
-		libffaac_enc_setmsg("failed to avfilter_get_by_name)");
-		goto error;
-	}
+	if (in_audio_gain == 1) {
+		//by pass
+		if ((volume = avfilter_get_by_name("anull")) == NULL) {
+			libffaac_enc_setmsg("failed to avfilter_get_by_name anull)");
+			goto error;
+		}
 
-	if ((volume_ctx = avfilter_graph_alloc_filter(filter_graph, volume, "volume")) == NULL) {
-		libffaac_enc_setmsg("failed to avfilter_graph_alloc_filter)");
-		goto error;
-	}
+		if ((volume_ctx = avfilter_graph_alloc_filter(filter_graph, volume, "anull")) == NULL) {
+			libffaac_enc_setmsg("failed to avfilter_graph_alloc_filter anull");
+			goto error;
+		}
+	} else {
+		//Dynamic Audio Normalizer
+		//https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm
+		if ((volume = avfilter_get_by_name("dynaudnorm")) == NULL) {
+			libffaac_enc_setmsg("failed to avfilter_get_by_name dynaudnorm");
+			goto error;
+		}
 
-#if 0
-	/* A different way of passing the options is as key/value pairs in a
-	 * dictionary. */
-	av_dict_set(&options_dict, "volume", AV_STRINGIFY(out_volume_ratio), 0);
-	err = avfilter_init_dict(volume_ctx, &options_dict);
-	av_dict_free(&options_dict);
-	if (err < 0) {
-		libffaac_enc_setmsg("failed to avfilter_init_dict");
-		goto error;
+		if ((volume_ctx = avfilter_graph_alloc_filter(filter_graph, volume, "dynaudnorm")) == NULL) {
+			libffaac_enc_setmsg("failed to avfilter_graph_alloc_filter dynaudnorm");
+			goto error;
+		}
+
+		snprintf(options_str, sizeof(options_str),
+				 "f=50:p=0.95:m=%d.0", in_audio_gain);
+		err = avfilter_init_str(volume_ctx, options_str);
+		if (err < 0) {
+			libffaac_enc_setmsg("failed to avfilter_init_str");
+			goto error;
+		}
 	}
-#else
-	snprintf(options_str, sizeof(options_str),
-			 "volume=%s",
-			 volumn_str);
-	err = avfilter_init_str(volume_ctx, options_str);
-	if (err < 0) {
-		libffaac_enc_setmsg("failed to avfilter_init_str");
-		goto error;
-	}
-#endif
 
 	/* Create the aformat filter;
 	 * it ensures that the output is of the format we want. */
@@ -1919,7 +1925,7 @@ error:
 
 
 int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
-	, int in_channels, int in_sample_rate, int in_bit_rate
+	, int in_channels, int in_sample_rate, int in_bit_rate, int in_audio_gain
 	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt)
 {
 	AVCodec *aud_dec = NULL;
@@ -1977,6 +1983,7 @@ int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
 		goto error;
 	}
 
+	p->in_audio_gain = in_audio_gain;
 	p->aud_ctx->codec_id = AV_CODEC_ID_AAC;
 	p->aud_ctx->profile = FF_PROFILE_AAC_LOW;
 	p->aud_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP; //only FDKAAC support AV_SAMPLE_FMT_S16
@@ -2009,11 +2016,17 @@ int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
 		goto error;
 	}
 
+	//store filtered audio buffer
+	if ((p->aud_filter_fifo =  av_audio_fifo_alloc(p->aud_ctx->sample_fmt, p->aud_ctx->channels, 1)) == NULL) {
+		libffmpeg_setmsg("failed to aud_filter_fifo ");
+		goto error;
+	}
+
 	//OUT Volume Adjusting + FMT convertor
 	if (init_filter_graph(&p->graph, &p->src, &p->sink
-	,AV_SAMPLE_FMT_S16, in_sample_rate, av_get_default_channel_layout(in_channels)
-	,AV_SAMPLE_FMT_FLTP, in_sample_rate, av_get_default_channel_layout(in_channels)
-	,"15dB")) {
+	,AV_SAMPLE_FMT_S16, p->aud_ctx->sample_rate, av_get_default_channel_layout(p->aud_ctx->channels)
+	,AV_SAMPLE_FMT_FLTP, p->aud_ctx->sample_rate, av_get_default_channel_layout(p->aud_ctx->channels)
+	,p->in_audio_gain)) {
 		goto error;
 	}
 
@@ -2044,6 +2057,7 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 	int ret;
 	AVFrame *in_frame = NULL;
 	AVFrame *out_frame = NULL;
+	AVFrame *out_frame2 = NULL;
 
 	if (enc->in_num_frame > p->in_frame_num) {
 		libffaac_enc_setmsg("%d over %d failed", enc->in_num_frame, p->in_frame_num);
@@ -2095,24 +2109,93 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 		goto error;
 	}
 
+#if 0
 	/* Get all the filtered output that is available. */
 	if (!(ret = av_buffersink_get_frame(p->sink, out_frame) >= 0)) {
-		libffaac_enc_setmsg("failed to av_buffersink_get_frame (error '%s')", get_error_text(ret));
+		libffaac_enc_setmsg("failed to av_buffersink_get_frame (error '%s') %d %d", get_error_text(ret), ret, out_frame->nb_samples);
 		goto error;
 	}
+
+	logx("%d %d planar:%d ch:%d s:%d\n"
+		, ret, AVERROR(EAGAIN), av_sample_fmt_is_planar(out_frame->format)
+		, av_get_channel_layout_nb_channels(out_frame->channel_layout)
+		, av_get_bytes_per_sample(out_frame->format));
 
 	if (out_frame->nb_samples != p->in_frame_num) {
 		libffaac_enc_setmsg("failed to cvrt S16 to FLTP, out_frame->nb_samples %d not eq p->in_frame_num %d"
 			, out_frame->nb_samples, p->in_frame_num);
 		goto error;
 	}
+#endif
+
+#if 1
+	while((ret = av_buffersink_get_frame(p->sink, out_frame)) >= 0) {
+		if (out_frame->nb_samples == 0) {
+			continue;
+		}
+
+		if ((ret =  av_audio_fifo_realloc(p->aud_filter_fifo, av_audio_fifo_size(p->aud_filter_fifo) + out_frame->nb_samples)) < 0) {
+			libffaac_enc_setmsg("failed to av_audio_fifo_realloc (error '%s') %d %d"
+				, get_error_text(ret), ret, out_frame->nb_samples);
+			goto error;
+		}
+
+		if (av_audio_fifo_write(p->aud_filter_fifo, (void **) out_frame->data,
+								out_frame->nb_samples) < out_frame->nb_samples) {
+			libffaac_enc_setmsg("failed to av_audio_fifo_write %d", out_frame->nb_samples);
+			goto error;
+		}
+		
+		//logx("push: %d/%d\n", out_frame->nb_samples, av_audio_fifo_size(p->aud_filter_fifo));
+	}
+#endif
+
+	if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+		//do nothing, normal situation
+	} else if (ret < 0) {
+		libffaac_enc_setmsg("failed to av_buffersink_get_frame (error '%s') %d %d", get_error_text(ret), ret, out_frame->nb_samples);
+		goto error;
+	}
+
+	if (av_audio_fifo_size(p->aud_filter_fifo) <  p->in_frame_num) {
+		//logx("aud_filter_buf_num %d not full\n", av_audio_fifo_size(p->aud_filter_fifo));
+		*enc->out_buf_size = 0;
+		*enc->out_buf = NULL;
+		*enc->out_num_frame = 0;
+		goto copy_remain;
+	}
+
+	//copy queued buffer to out_frame2
+	if ((out_frame2 = av_frame_alloc()) == NULL) {
+		libffaac_enc_setmsg("failed to av_frame_alloc ");
+		goto error;
+	}
+
+    out_frame2->sample_rate    = p->in_sample_rate;
+    out_frame2->format         = AV_SAMPLE_FMT_FLTP;
+    out_frame2->channel_layout = av_get_default_channel_layout(2);
+    out_frame2->nb_samples     = p->in_frame_num;
+
+	if ((ret = av_frame_get_buffer(out_frame2, 0)) < 0) {
+		libffaac_enc_setmsg("failed to allocate output frame samples (error '%s')",
+				get_error_text(ret));
+		goto error;
+	}
+
+	if ((ret=av_audio_fifo_read(p->aud_filter_fifo, (void **)out_frame2->data, out_frame2->nb_samples)) < out_frame2->nb_samples) {
+		libffaac_enc_setmsg("failed to av_audio_fifo_read ret:%d %d"
+			, ret, out_frame2->nb_samples);
+		goto error;
+	}
+
+	//logx("pop: %d/%d\n\n\n", out_frame2->nb_samples, av_audio_fifo_size(p->aud_filter_fifo));
 
 	av_init_packet(&pkt);
 	pkt.data = NULL;
 	pkt.size = 0;
 
 	//encode
-	if ((ret = avcodec_encode_audio2(p->aud_ctx, &pkt, out_frame, &got_output)) < 0) {  
+	if ((ret = avcodec_encode_audio2(p->aud_ctx, &pkt, out_frame2, &got_output)) < 0) {  
 		libffaac_enc_setmsg("failed to avcodec_encode_audio2 AAC (error '%s')",
 				get_error_text(ret));
 		goto error;
@@ -2126,7 +2209,7 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 		goto copy_remain;
 	}
 
-	//logx("got_aac_frame: %d\n", pkt.size);
+	//logx("got_aac_frame: %d %f\n", pkt.size, p->frame_counter/44100.0f);
 	libffaac_enc_set_adts_len(p->out_frame, pkt.size+7);
 	memcpy(p->out_frame+7, pkt.data, pkt.size);
 
@@ -2145,6 +2228,9 @@ copy_remain:
 	if (out_frame) {
 		av_frame_free(&out_frame);
 	}
+	if (out_frame2) {
+		av_frame_free(&out_frame2);
+	}
 
 	//copy remain bytes
 	remain_frame = enc->in_num_frame - copy_frame;
@@ -2157,6 +2243,9 @@ error:
 	}
 	if (out_frame) {
 		av_frame_free(&out_frame);
+	}
+	if (out_frame2) {
+		av_frame_free(&out_frame2);
 	}
 	return -1;
 }
@@ -2176,6 +2265,23 @@ int EXPORTS MINGWAPI libffaac_enc_reset(libffaac_enc_t h)
 
 	p->in_frame_num_current = 0;
 	p->frame_counter = 0;
+	av_audio_fifo_reset(p->aud_filter_fifo);
+	p->src = NULL;
+	p->sink = NULL;
+	
+	if (p->graph) {
+		avfilter_graph_free(&p->graph);
+		p->graph = NULL;
+	}
+
+	//OUT Volume Adjusting + FMT convertor
+	if (init_filter_graph(&p->graph, &p->src, &p->sink
+	,AV_SAMPLE_FMT_S16, p->aud_ctx->sample_rate, av_get_default_channel_layout(p->aud_ctx->channels)
+	,AV_SAMPLE_FMT_FLTP, p->aud_ctx->sample_rate, av_get_default_channel_layout(p->aud_ctx->channels)
+	,p->in_audio_gain)) {
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -2185,6 +2291,11 @@ int EXPORTS MINGWAPI libffaac_enc_close(libffaac_enc_t h)
 
 	if (!p) {
 		return -1;
+	}
+
+	if (p->aud_filter_fifo) {
+		av_audio_fifo_free (p->aud_filter_fifo);
+		p->aud_filter_fifo = NULL;
 	}
 
 	if (p->aud_ctx) {

@@ -107,11 +107,11 @@ typedef struct {
 	int *out_buf_size;
 	int *out_num_frame;
 	int64_t *out_pts;
-} __attribute__((aligned (16))) libffaac_enc;
+} __attribute__((aligned (FF_ALIGNMENT_SIZE))) libffaac_enc;
 
 typedef void *libffaac_enc_t;
 int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
-	, int in_channels, int in_sample_rate, int in_bit_rate
+	, int in_channels, int in_sample_rate, int in_bit_rate, int in_audio_gain
 	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt);
 int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc);
 int EXPORTS MINGWAPI libffaac_enc_done(libffaac_enc_t h);

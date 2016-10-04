@@ -43,7 +43,7 @@ typedef struct {
 } libfdkaac_enc_data;
 
 int EXPORTS MINGWAPI libfdkaac_enc_open(libfdkaac_enc_t *h
-	, int in_channels, int in_sample_rate, int in_bit_rate
+	, int in_channels, int in_sample_rate, int in_bit_rate, int /*in_audio_gain only for ffaac*/
 	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt)
 {
 	libfdkaac_enc_data *p = NULL;
