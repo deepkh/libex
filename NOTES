@@ -1,3 +1,15 @@
+[libcodec-1.2.6]
+* fixed: ffmpeg: failed to decode audio frame when ff_codec_probe, this seem
+	the audio frame decode failed, and when skip the wrong frame we can keep
+	on, but may be AV will not sync
+	手拉你 axine-solanin-cd2.avi,
+	1.3G - 靈光乍現 -l-fog.cd2.avi
+* fixed: ffmpeg: failed to seek some video when ff_codec_probe, this seem the
+	first frame was not I frame, so will causing ffmpeg AVSEEK_FLAG_BACKWARD 
+	failed, but change method to AVSEEK_FLAG_ANY this issue will not happend
+* improved: ffmpeg: prevent global g_szMsg for fflog  
+* improved: ffmpeg: add ffmpeg version to log
+
 [libcodec-1.2.5]
 ffaac: add audio_gain (Dynamic Audio Normalizer) func
 fdkaac: add audio_gain func (Dynamic Audio Normalizer)
