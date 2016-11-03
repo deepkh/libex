@@ -120,6 +120,7 @@ typedef struct {
 	firefly_buffer *aud_outbuf;
 
 	libffmpeg_log log;
+	char log_str[DBG_MSG_LEN];
 } libffmpeg_data;
 
 static int64_t ff_video_ts_mapping(double secs, double fps_f)
@@ -197,17 +198,26 @@ static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatConte
 		c->width =  c->dec_ctx->width;
 		c->height =  c->dec_ctx->height;
 
-		fflog(p->log, "wh:%dx%d, coded_wh:%dx%d"
+		fflog(p->log, p->log_str, "wh:%dx%d, coded_wh:%dx%d"
 			, c->width, c->height
 			, c->dec_ctx->coded_width, c->dec_ctx->coded_height);
 
 		if (c->dec_ctx->coded_width > 0 && c->dec_ctx->coded_height > 0) {
+#if 0
 			c->width = c->dec_ctx->coded_width;
 			c->height = c->dec_ctx->coded_height;
+#else
+			//only for width not align to 16 but not height not align to 16
+			if (c->dec_ctx->coded_width != c->width) {
+				c->width = MSDK_ALIGN16(c->dec_ctx->coded_width);
+				c->height = MSDK_ALIGN16(c->dec_ctx->coded_height);
+				fflog(p->log, p->log_str, "aligned wh:%dx%d, ", c->width, c->height);
+			}
+#endif
 		}
 
-		fflog(p->log, "fps1 %d %d = %f", st->avg_frame_rate.num, st->avg_frame_rate.den, st->avg_frame_rate.num/(double)st->avg_frame_rate.den);
-		fflog(p->log, "fps2 %d %d = %f", r_frame_rate.num, r_frame_rate.den, r_frame_rate.num/(double)r_frame_rate.den);
+		fflog(p->log, p->log_str, "fps1 %d %d = %f", st->avg_frame_rate.num, st->avg_frame_rate.den, st->avg_frame_rate.num/(double)st->avg_frame_rate.den);
+		fflog(p->log, p->log_str, "fps2 %d %d = %f", r_frame_rate.num, r_frame_rate.den, r_frame_rate.num/(double)r_frame_rate.den);
 
 		if (r_frame_rate.den && r_frame_rate.num 
 			&& !(r_frame_rate.num == 90000 && r_frame_rate.den == 1)) { //workaround for some ambiguous framerate, using avg_frame_rate instead Elecard_about_Tomsk_part3_HEVC_UHD.mp4
@@ -319,26 +329,30 @@ static int ff_codec_probe(libffmpeg_data *p, double origin_secs)
 				av_packet_rescale_ts(&p->pkt
 					, p->fmt_ctx->streams[stream_idx]->time_base
 					, p->fmt_ctx->streams[stream_idx]->codec->time_base);
-				
+			
 				if ((ret = avcodec_decode_audio4(p->fmt_ctx->streams[stream_idx]->codec, p->frame, &got_frame, &p->pkt)) < 0) {
-					libffmpeg_setmsg("failed to avcodec_decode_audio4 %d", ret);
-					goto error;
+					if (p->audio_failed_decode_count++ >= FAILED_AUDIO_DECODE_COUNT) {
+						libffmpeg_setmsg("failed to decode audio over %d times", p->audio_failed_decode_count);
+						goto error;
+					}
+					fflog(p->log, p->log_str, "WARN: failed to decode audio ret:%d %d/%d", ret, p->audio_failed_decode_count, FAILED_AUDIO_DECODE_COUNT);
+					break; //skip this packet (this may be causing AV not sync);
 				}
 
 				if (got_frame) {
 					pts = av_frame_get_best_effort_timestamp(p->frame) * av_q2d(p->fmt_ctx->streams[stream_idx]->codec->time_base);
 					p->init_aud_pts = ff_audio_ts_mapping(pts, p->sample_rate);
 					p->init_aud_pts_secs = pts;
+					found_aud_frame = 1;
 					break;
 				}
 				
+				p->audio_failed_decode_count = 0;
 				p->pkt.data += ret;
 				p->pkt.size -= ret;
 				p->pkt.pts = org_pts;
 				p->pkt.dts = org_dts;
 			}
-
-			found_aud_frame = 1;
 		}
 
 		if (p->pkt.data /*&& p->pkt.size > 0*/) {
@@ -348,13 +362,19 @@ static int ff_codec_probe(libffmpeg_data *p, double origin_secs)
 		p->pkt.size = 0;
 	}
 
-	if (av_seek_frame(p->fmt_ctx, p->vid.idx, origin_secs, AVSEEK_FLAG_BACKWARD) < 0){
-		libffmpeg_setmsg("failed to seek begin of file");
-		goto error;
+	if ((ret=av_seek_frame(p->fmt_ctx, p->vid.idx, origin_secs, AVSEEK_FLAG_BACKWARD)) < 0){
+		fflog(p->log, p->log_str, "WARN: failed to seek begin of file ret:%d sec:%f", ret, origin_secs);
+		
+		//The AVSEEK_FLAG_ANY enables seeking to every frame and not just keyframes
+		//(may be first frame are not I frame, so seek to any frame
+		if ((ret = av_seek_frame(p->fmt_ctx, -1, origin_secs, AVSEEK_FLAG_ANY)) < 0){
+			libffmpeg_setmsg("failed to seek begin of file ret:%d sec:%f", ret, origin_secs);
+			goto error;
+		}
 	}
 
-	fflog(p->log, "init video dts: %f %"PRId64, p->init_vid_dts_secs, p->init_vid_dts);
-	fflog(p->log, "init audio pts: %f %"PRId64, p->init_aud_pts_secs, p->init_aud_pts);
+	fflog(p->log, p->log_str, "init video dts: %f %"PRId64, p->init_vid_dts_secs, p->init_vid_dts);
+	fflog(p->log, p->log_str, "init audio pts: %f %"PRId64, p->init_aud_pts_secs, p->init_aud_pts);
 
 	return 0;
 error:
@@ -410,18 +430,18 @@ static int ff_codec_init_parser(libffmpeg_data *p)
 		len = av_parser_parse2(p->vid.parser, p->vid.dec_ctx, &data, &size
 			,newpkt.data, newpkt.size, newpkt.pts, newpkt.dts, newpkt.pos);
 
-		fflog(p->log, "len:%d data:%p size:%d newpkt.data:%p newpkt.size:%d"
+		fflog(p->log, p->log_str, "len:%d data:%p size:%d newpkt.data:%p newpkt.size:%d"
 			, len, data, size, newpkt.data, newpkt.size);
 		if (with_annex_b) {
 			av_free(newpkt.data);
 		}
 
 		if (size == 0 && len > 0) {
-			fflog(p->log, "need more bytes");
+			fflog(p->log, p->log_str, "need more bytes");
 			continue;
 		}
 
-		fflog(p->log, "coded_width:%d coded_height:%d width:%d height:%d"
+		fflog(p->log, p->log_str, "coded_width:%d coded_height:%d width:%d height:%d"
 			, p->vid.parser->coded_width, p->vid.parser->coded_height
 			, p->vid.parser->width , p->vid.parser->height);
 
@@ -459,6 +479,13 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 
 	p->log = log;
 	p->cfg = cfg;
+
+	fflog(p->log, p->log_str, "%s %s %s %s %s"
+		, LIBAVFORMAT_IDENT
+		, LIBAVCODEC_IDENT
+		, LIBSWSCALE_IDENT
+		, LIBSWRESAMPLE_IDENT
+		, LIBAVFILTER_IDENT);
 
 	/* open input file, and allocate format context */
 	if (avformat_open_input(&p->fmt_ctx, cfg->file_name, NULL, NULL) < 0) {
@@ -536,7 +563,7 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 				goto error;
 			}
 
-			fflog(p->log, "p->vid.h264_bsfc: %p", p->vid.h264_bsfc);
+			fflog(p->log, p->log_str, "p->vid.h264_bsfc: %p", p->vid.h264_bsfc);
 #endif
 		} else {
 			cfg->disable_decode_h264 = 0;
@@ -626,7 +653,7 @@ noaudio:
 
 finally:
 	cfg->duration = p->duration = p->fmt_ctx->duration / (double) AV_TIME_BASE;
-	fflog(p->log, "duration: %f", cfg->duration);
+	fflog(p->log, p->log_str, "duration: %f", cfg->duration);
 	//av_dump_format(p->fmt_ctx, 0, cfg->file_name, 0);
 
 	if (!p->vid.dec_ctx && !p->aud.dec_ctx) {
@@ -640,7 +667,7 @@ finally:
 	}
 
 	if (cfg->video_type) {
-		fflog(p->log, "%s %dx%d,%s,%f"
+		fflog(p->log, p->log_str, "%s %dx%d,%s,%f"
 			, p->vid.dec_ctx->codec->name, p->vid.width, p->vid.height, av_get_pix_fmt_name(p->vid.pix_fmt)
 			, (double)p->vid.fps_num / (double)p->vid.fps_den);
 	} else if (cfg->video_type == 0) {
@@ -649,7 +676,7 @@ finally:
 
 	if (cfg->audio_type) {
 		av_get_channel_layout_string(tmp, sizeof(tmp), p->aud.channels, p->aud.channel_layout);
-		fflog(p->log, "%s,%s,%d,%d"
+		fflog(p->log, p->log_str, "%s,%s,%d,%d"
 			, p->aud.dec_ctx->codec->name, av_get_sample_fmt_name(p->aud.sample_fmt), tmp, p->aud.channels, p->aud.sample_rate);
 	}
 
@@ -683,7 +710,7 @@ finally:
 				goto error;
 			}
 
-			//fflog(p->log, "sync_audio_1: insert audio frame %d. begin pts:%f %f %"PRId64, silence_frame_num, p->init_vid_dts_secs, p->pts/(double)p->sample_rate, p->pts);
+			//fflog(p->log, p->log_str, "sync_audio_1: insert audio frame %d. begin pts:%f %f %"PRId64, silence_frame_num, p->init_vid_dts_secs, p->pts/(double)p->sample_rate, p->pts);
 			ff_buffer_push(p->aud_buf, silence, silence_size);
 			ff_free(silence);
 			silence = NULL;
@@ -833,9 +860,9 @@ static int ff_read_h264_video(libffmpeg_data *p, int stream_idx, firefly_buffer 
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
-		fflog(p->log,"[VID] org_pts:%f != new_pts:%f", pts, firefly_video_pts(outbuf));
-		fflog(p->log,"\t%f x %f = %d", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
-		fflog(p->log,"\t%d / %f = %f"
+		fflog(p->log, p->log_str, "[VID] org_pts:%f != new_pts:%f", pts, firefly_video_pts(outbuf));
+		fflog(p->log, p->log_str, "\t%f x %f = %d", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
+		fflog(p->log, p->log_str, "\t%d / %f = %f"
 			, (int)(pts*p->vid.fps_f)
 			, p->vid.fps_f
 			, firefly_video_pts(outbuf));
@@ -900,9 +927,9 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 
 	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
 #if 1
-		fflog(p->log,"[VID] org_pts:%f != new_pts:%f", pts, firefly_video_pts(outbuf));
-		fflog(p->log,"\t%f x %f = %d", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
-		fflog(p->log,"\t%d / %f = %f"
+		fflog(p->log, p->log_str, "[VID] org_pts:%f != new_pts:%f", pts, firefly_video_pts(outbuf));
+		fflog(p->log, p->log_str, "\t%f x %f = %d", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
+		fflog(p->log, p->log_str, "\t%d / %f = %f"
 			, (int)(pts*p->vid.fps_f)
 			, p->vid.fps_f
 			, firefly_video_pts(outbuf));
@@ -916,7 +943,7 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 			, outbuf->plane, outbuf->stride);
 #if 0
 		if (already_prt++ == 0) {
-		fflog(p->log, "sws in_stide:%d %d %d out_stride:%d %d %d wh:%d"
+		fflog(p->log, p->log_str, "sws in_stide:%d %d %d out_stride:%d %d %d wh:%d"
 			, in_vid_stride[0], in_vid_stride[1], in_vid_stride[2]
 			, outbuf->stride[0], outbuf->stride[1], outbuf->stride[2]
 			, p->vid.width, p->vid.height);
@@ -928,7 +955,7 @@ static int ff_decode_video(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 			(const uint8_t **)(in_vid_plane), in_vid_stride,
 			p->vid.pix_fmt, p->vid.width, p->vid.height);
 #if 0
-		fflog(p->log, "in_stide:%d %d %d out_stride:%d %d %d wh:%d"
+		fflog(p->log, p->log_str, "in_stide:%d %d %d out_stride:%d %d %d wh:%d"
 			, in_vid_stride[0], in_vid_stride[1], in_vid_stride[2]
 			, outbuf->stride[0], outbuf->stride[1], outbuf->stride[2]
 			, p->vid.width, p->vid.height);
@@ -954,7 +981,7 @@ static int ff_decode_audio_flush_pcm(libffmpeg_data *p
 		ff_buffer_pop(p->aud_buf, (char *)outbuf->buf, ff_buffer_data_size(p->aud_buf));
 		outbuf->header.pts = p->pts;
 			
-		//fflog(p->log, "flush_pcm remain:%d pts:%f %"PRId64, p->num_frame, (p->pts)/(double)p->sample_rate, p->pts);
+		//fflog(p->log, p->log_str, "flush_pcm remain:%d pts:%f %"PRId64, p->num_frame, (p->pts)/(double)p->sample_rate, p->pts);
 
 		if (out_samples <= MAX_AAC_FRAME_SIZE) {
 			outbuf->header.num_frame = out_samples;
@@ -1022,7 +1049,7 @@ static int ff_decode_audio(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	outbuf->buf_size = outbuf->header.num_frame * p->frame_size;
 
 	if (p->is_aud_first_frame) {
-		fflog(p->log, "aud first PTS %.3f %.3f"
+		fflog(p->log, p->log_str, "aud first PTS %.3f %.3f"
 			, firefly_audio_pts(outbuf)
 			, pts);
 		p->is_aud_first_frame = 0;
@@ -1031,9 +1058,9 @@ static int ff_decode_audio(libffmpeg_data *p, int stream_idx, firefly_buffer *ou
 	//printf("[%d] aud pts: %f, num_frame:%d\n", *cc, pts, *num_frame);
 
 	if (double_equals(firefly_audio_pts(outbuf), pts, 0.001) == 0) {
-		fflog(p->log, "[AUD] org_pts:%f != new_pts:%f", pts, firefly_audio_pts(outbuf));
-		fflog(p->log, "\t%f x %d = %d", pts, p->aud.sample_rate, (int)(pts*p->aud.sample_rate));
-		fflog(p->log, "\t%"PRId64 "/ %d = %f"
+		fflog(p->log, p->log_str, "[AUD] org_pts:%f != new_pts:%f", pts, firefly_audio_pts(outbuf));
+		fflog(p->log, p->log_str, "\t%f x %d = %d", pts, p->aud.sample_rate, (int)(pts*p->aud.sample_rate));
+		fflog(p->log, p->log_str, "\t%"PRId64 "/ %d = %f"
 			, outbuf->header.pts
 			, p->sample_rate
 			, outbuf->header.pts / (double)p->sample_rate);
@@ -1079,7 +1106,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 			/** got aud frame */
 			/** sync_audio_2: init_aud_pts < init_vid_pts skip_audio_frame. some file are not begining at 0 sec */
 			if (firefly_audio_pts(p->aud_outbuf) < p->init_vid_dts_secs2) {
-				//fflog(p->log, "sync_audio_2: skip audio frame %f < %f"
+				//fflog(p->log, p->log_str, "sync_audio_2: skip audio frame %f < %f"
 				//	, firefly_audio_pts(p->aud_outbuf)
 				//	, p->init_vid_dts_secs2);
 				p->sync_audio_2 = 1;
@@ -1127,7 +1154,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 			if (p->no_vid_pts || p->pkt.pts == AV_NOPTS_VALUE) {
 				p->first_vid_dts = ff_video_ts_mapping(p->seek_secs, p->vid.fps_f);
 				if (p->no_vid_pts == 0) {
-					fflog(p->log, "NOPTS FAKE DTS/PTS %"PRId64, p->first_vid_dts);
+					fflog(p->log, p->log_str, "NOPTS FAKE DTS/PTS %"PRId64, p->first_vid_dts);
 				}
 				p->no_vid_pts = 1;
 			} else {
@@ -1135,7 +1162,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 				p->first_vid_dts = ff_video_ts_mapping(dts, p->vid.fps_f);
 			}
 			p->is_vid_first_frame = 0;
-			fflog(p->log, "video first DTS: %.3f %"PRId64, p->first_vid_dts/(double)p->vid.fps_f, p->first_vid_dts);
+			fflog(p->log, p->log_str, "video first DTS: %.3f %"PRId64, p->first_vid_dts/(double)p->vid.fps_f, p->first_vid_dts);
 		}
 
 		if (p->vid.h264_bsfc) {
@@ -1169,6 +1196,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 					libffmpeg_setmsg("failed to decode audio over %d times", p->audio_failed_decode_count);
 					goto error;
 				}
+				fflog(p->log, p->log_str, "WARN: failed to decode audio ret:%d %d/%d", ret, p->audio_failed_decode_count, FAILED_AUDIO_DECODE_COUNT);
 				goto finally;
 			}
 			p->audio_failed_decode_count = 0;
@@ -1182,7 +1210,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 		if (p->aud_outbuf->header.num_frame > 0) {
 			/** sync_audio_2: init_aud_pts < init_vid_pts skip_audio_frame. some file are not begining at 0 sec */
 			if (firefly_audio_pts(p->aud_outbuf) < p->init_vid_dts_secs2) {
-				//fflog(p->log, "sync_audio_2: skip audio frame %f < %f"
+				//fflog(p->log, p->log_str, "sync_audio_2: skip audio frame %f < %f"
 					//,firefly_audio_pts(p->aud_outbuf)
 					//, p->init_vid_dts_secs2);
 					p->sync_audio_2 = 1;
@@ -1229,7 +1257,7 @@ int EXPORTS MINGWAPI libffmpeg_seek(libffmpeg_t h, void *p1, void *p2)
 	avr.num = 1;
 	avr.den = AV_TIME_BASE;
 
-	//fflog(p->log, "seek to: %f + %f = %f", p->init_vid_dts_secs, secs,  secs + p->init_vid_dts_secs);
+	//fflog(p->log, p->log_str, "seek to: %f + %f = %f", p->init_vid_dts_secs, secs,  secs + p->init_vid_dts_secs);
 	//if initial PTS are not ZERO, when seeking if aud_pts < vid_pts, then we need to skip audio frame before 
 	//audio frame PTS >= video frame DTS
 	secs += p->init_vid_dts_secs;
@@ -1389,20 +1417,18 @@ error:
 	return -1;
 }
 
-char _ffmsg[DBG_MSG_LEN];
-
-void fflog2(const char *file, int line, libffmpeg_log log, const char *fmt, ...)
+void fflog2(const char *file, int line, libffmpeg_log log, char *log_str, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
 	if (file && line) {
-		sprintf(_ffmsg, "%s(%d): ", file, line);
-		vsprintf(strlen(_ffmsg)+_ffmsg, fmt, args);
+		sprintf(log_str, "%s(%d): ", file, line);
+		vsprintf(strlen(log_str)+log_str, fmt, args);
 	} else {
-		vsprintf(_ffmsg, fmt, args);
+		vsprintf(log_str, fmt, args);
 	}
 	va_end(args);
-	log(_ffmsg);
+	log(log_str);
 }
 
 
@@ -1411,6 +1437,7 @@ typedef struct {
 	struct SwsContext *sws;
 	firefly_buffer *outbuf;
 	libffmpeg_log log;
+	char log_str[DBG_MSG_LEN];
 } libffmpeg_img_scale_data;
 
 static int firefly_type_to_ffmpeg(int type)
@@ -1494,7 +1521,7 @@ int EXPORTS MINGWAPI libffmpeg_img_scale_open(libffmpeg_t *h, libffmpeg_img_scal
 	}
 
 
-	fflog(p->log, "swscale method: %d %s", swscale_method, cfg->swscale_method);
+	fflog(p->log, p->log_str, "swscale method: %d %s", swscale_method, cfg->swscale_method);
 
 	if ((p->sws = sws_getContext(
 		cfg->in_width, cfg->in_height
@@ -1747,19 +1774,10 @@ typedef struct {
 	int out_frame_size;
 
 	int64_t frame_counter;
+	
+	libffaac_log log;
+	char log_str[DBG_MSG_LEN];
 } libffaac_enc_data;
-
-void logx(const char *fmt, ...)
-{
-	va_list args;
-	char szMsg[4096];
-
-	va_start(args, fmt);
-	vsprintf(szMsg, fmt, args);
-	va_end(args);
-	fprintf(stderr, szMsg);
-	fflush(stderr);
-}
 
 static const char *get_error_text(const int error)
 {
@@ -1926,7 +1944,7 @@ error:
 
 int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
 	, int in_channels, int in_sample_rate, int in_bit_rate, int in_audio_gain
-	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt)
+	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt, libffaac_log fflog)
 {
 	AVCodec *aud_dec = NULL;
 	libffaac_enc_data *p = NULL;
@@ -1983,6 +2001,7 @@ int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
 		goto error;
 	}
 
+	p->log = fflog;
 	p->in_audio_gain = in_audio_gain;
 	p->aud_ctx->codec_id = AV_CODEC_ID_AAC;
 	p->aud_ctx->profile = FF_PROFILE_AAC_LOW;
@@ -2003,7 +2022,7 @@ int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
 		goto error;
 	}
 
-	//logx("frame_size: %d\nin_sample_rate:%d\n", p->aud_ctx->frame_size, in_sample_rate);
+	//fflog(p->log, p->log_str, "frame_size: %d\nin_sample_rate:%d", p->aud_ctx->frame_size, in_sample_rate);
 	p->frame_size = in_channels * (in_bit_rate/8);						//16bit per sample
 	p->in_frame_num = p->aud_ctx->frame_size;
 	p->in_frame_size = p->frame_size * p->in_frame_num;
@@ -2116,7 +2135,7 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 		goto error;
 	}
 
-	logx("%d %d planar:%d ch:%d s:%d\n"
+	//fflog(p->log, p->log_str, "%d %d planar:%d ch:%d s:%d"
 		, ret, AVERROR(EAGAIN), av_sample_fmt_is_planar(out_frame->format)
 		, av_get_channel_layout_nb_channels(out_frame->channel_layout)
 		, av_get_bytes_per_sample(out_frame->format));
@@ -2146,7 +2165,7 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 			goto error;
 		}
 		
-		//logx("push: %d/%d\n", out_frame->nb_samples, av_audio_fifo_size(p->aud_filter_fifo));
+		//fflog(p->log, p->log_str, "push: %d/%d", out_frame->nb_samples, av_audio_fifo_size(p->aud_filter_fifo));
 	}
 #endif
 
@@ -2158,7 +2177,7 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 	}
 
 	if (av_audio_fifo_size(p->aud_filter_fifo) <  p->in_frame_num) {
-		//logx("aud_filter_buf_num %d not full\n", av_audio_fifo_size(p->aud_filter_fifo));
+		//fflog(p->log, p->log_str, "aud_filter_buf_num %d not full", av_audio_fifo_size(p->aud_filter_fifo));
 		*enc->out_buf_size = 0;
 		*enc->out_buf = NULL;
 		*enc->out_num_frame = 0;
@@ -2188,7 +2207,7 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 		goto error;
 	}
 
-	//logx("pop: %d/%d\n\n\n", out_frame2->nb_samples, av_audio_fifo_size(p->aud_filter_fifo));
+	//fflog(p->log, p->log_str, "pop: %d/%d", out_frame2->nb_samples, av_audio_fifo_size(p->aud_filter_fifo));
 
 	av_init_packet(&pkt);
 	pkt.data = NULL;
@@ -2202,14 +2221,14 @@ int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc)
 	}
 
 	if (!(got_output > 0)) {
-		//logx("no get frame\n");
+		//fflog(p->log, p->log_str, "no get frame");
 		*enc->out_buf_size = 0;
 		*enc->out_buf = NULL;
 		*enc->out_num_frame = 0;
 		goto copy_remain;
 	}
 
-	//logx("got_aac_frame: %d %f\n", pkt.size, p->frame_counter/44100.0f);
+	//fflog(p->log, p->log_str, "got_aac_frame: %d %f", pkt.size, p->frame_counter/44100.0f);
 	libffaac_enc_set_adts_len(p->out_frame, pkt.size+7);
 	memcpy(p->out_frame+7, pkt.data, pkt.size);
 

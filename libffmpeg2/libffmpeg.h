@@ -64,9 +64,8 @@ void EXPORTS MINGWAPI libffmpeg_get_msg(char *msg);
 void libffmpeg_setmsg2(const char *file, int line, const char *fmt, ...);
 #define libffmpeg_setmsg(fmt, ...) libffmpeg_setmsg2(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-void fflog2(const char *file, int line, libffmpeg_log log, const char *fmt, ...);
-#define fflog(log, fmt, ...) fflog2(__FILE__, __LINE__, log, fmt, ##__VA_ARGS__)
-
+void fflog2(const char *file, int line, libffmpeg_log log, char *log_str, const char *fmt, ...);
+#define fflog(log, log_str, fmt, ...) fflog2(__FILE__, __LINE__, log, log_str, fmt, ##__VA_ARGS__)
 
 
 /***************************************************
@@ -110,9 +109,10 @@ typedef struct {
 } __attribute__((aligned (FF_ALIGNMENT_SIZE))) libffaac_enc;
 
 typedef void *libffaac_enc_t;
+typedef int (*libffaac_log)(const char *fmt, ...);
 int EXPORTS MINGWAPI libffaac_enc_open(libffaac_enc_t *h
 	, int in_channels, int in_sample_rate, int in_bit_rate, int in_audio_gain
-	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt);
+	, int out_vbr, int out_bit_rate, int *enc_num_frame, int out_bitstream_fmt, libffaac_log fflog);
 int EXPORTS MINGWAPI libffaac_enc_encode(libffaac_enc_t h, libffaac_enc *enc);
 int EXPORTS MINGWAPI libffaac_enc_done(libffaac_enc_t h);
 int EXPORTS MINGWAPI libffaac_enc_reset(libffaac_enc_t h);
