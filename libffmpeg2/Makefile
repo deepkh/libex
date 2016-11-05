@@ -31,5 +31,7 @@ LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
 
 include $(ROOT)/Makefile.common
 
+all: default
+
 install: all
 	$(CP) $(TARGET_NAME) $(RUNTIME)/bin
