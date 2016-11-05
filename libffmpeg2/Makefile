@@ -1,6 +1,7 @@
-include $(ROOT)/Makefile.def
+include $(ROOT)/mk/Makefile.def
 
 CFLAGS += -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS 
+LDFLAGS += -static
 
 LIB_FILE = libffmpeg.c \
 		ff_buffer.c \

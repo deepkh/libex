@@ -1,6 +1,7 @@
-include $(ROOT)/Makefile.def
+include $(ROOT)/mk/Makefile.def
 
 LIB_CXX_FILE = libx264.cpp
+LDFLAGS += -static
 
 ifneq (, $(findstring mingw, $(CROSS_COMPILE1)))
 	LDFLAGS += -Wl,--large-address-aware -Wl,--nxcompat -Wl,--dynamicbase
