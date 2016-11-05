@@ -1,3 +1,6 @@
+[libns3p-1.2.8]
+* update submod mk
+
 [libns3p-1.2.7]
 * improved: rename libcodec instead of libns3p
 * improved: move libpkg into libns3p
