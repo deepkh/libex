@@ -1,0 +1,52 @@
+### NetSync.tv Third-party library build scripts
+### Grey Huang <deepkh@gmail.com>
+### 2016
+
+SHELL=/bin/sh
+
+include $(ROOT)/mk/Makefile.dep.pre
+
+ifdef HAVE_LIB_QUEUE
+	LIB_CONFIGURE_FILE += $(RUNTIME)/include/sys/queue.h
+endif
+
+ifdef HAVE_LIB_SSL
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libssl.a
+endif
+
+ifdef HAVE_LIB_ICONV
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libiconv.$(DLLASUFFIX)
+endif
+
+ifdef HAVE_LIB_EVENT
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libevent.a
+endif
+
+ifdef HAVE_LIB_LOAD_PNG
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/liblodepng.a
+endif
+
+ifdef HAVE_LIB_UCHAR_DET
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libuchardet.a
+endif
+
+ifdef HAVE_LIB_JANSOON
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libjansson.a
+endif
+
+ifdef HAVE_LIB_X264
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libx264.$(DLLASUFFIX) \
+							$(RUNTIME)/bin/x264.$(DLLSUFFIX)
+endif
+
+ifdef HAVE_LIB_FDKAAC
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libfdk-aac.$(DLLASUFFIX) \
+							$(RUNTIME)/bin/fdkaac.$(DLLSUFFIX)
+endif
+
+ifdef HAVE_LIB_FFMPEG
+	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libavcodec.$(DLLASUFFIX) \
+							$(RUNTIME)/bin/ffmpeg.$(DLLSUFFIX)
+endif
+
+include $(ROOT)/mk/Makefile.dep.post
