@@ -1,28 +1,20 @@
+SHELL := /bin/bash
+
 include $(ROOT)/mk/Makefile.def
+include $(ROOT)/mk/Makefile.dep.pre
 
-LIB_CXX_FILE = libfdkaac.cpp
-LDFLAGS += -static
+LDFLAGS += -lfdk-aac$(LDLLSUFFIX)
 
-ifneq (, $(findstring mingw, $(CROSS_COMPILE1)))
-	LDFLAGS += -Wl,--large-address-aware -Wl,--nxcompat -Wl,--dynamicbase
-	LDFLAGS += $(RUNTIME)/lib/libfdk-aac.dll.a
-	TARGET_DLL = fdkaac.$(DLLSUFFIX)
-	LIB_CXX_FILE += dllmain.cpp
-	TARGET_NAME = $(TARGET_DLL)
-else
-	LDFLAGS += -lfdk-aac
-	TARGET_SOLIB = fdkaac.$(DLLSUFFIX)
-	TARGET_NAME = $(TARGET_SOLIB)
-endif
+include $(ROOT)/mk/Makefile.dep.post
 
-ifneq (, $(findstring mingw, $(CROSS_COMPILE1)))
-endif
+TARGET_DLL = fdkaac.$(DLLSUFFIX)
+TARGET_NAME = $(TARGET_DLL)
 
 LIB_OBJS = $(LIB_FILE:.c=.o)
-LIB_CXX_FILE += 
+LIB_CXX_FILE = libfdkaac.cpp
 LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
 
-include $(ROOT)/Makefile.common
+include $(ROOT)/mk/Makefile.common
 
 all: default
 
