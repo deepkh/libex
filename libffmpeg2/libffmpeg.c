@@ -25,6 +25,10 @@
 #include <string.h>
 #include "ff_buffer.h"
 
+#ifndef min
+#define min(X,Y) (X < Y ? X : Y)
+#endif
+
 char g_szMsg[8192];
 
 enum {
