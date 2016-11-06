@@ -1,7 +1,6 @@
 /*
-* Copyright 2014-2015 Guan-Da Huang (doublescn@gmail.com)
-* All rights reserved.
-* license on GPL v2. please see license.txt for more details
+* Copyright 2017 NetSync.tv Grey Huang (deepkh@gmail.com) All rights reserved. 
+* license: GNU Lesser General Public License v2.1 
 */
 
 #include "libffmpeg.h"

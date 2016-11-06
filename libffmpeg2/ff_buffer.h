@@ -1,11 +1,7 @@
 /*
- * Copyright 2014-2015 Guan-Da Huang (doublescn@gmail.com)
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are NOT permitted without specific written permission
- * from above copyright holder.
- */
+* Copyright 2017 NetSync.tv Grey Huang (deepkh@gmail.com) All rights reserved. 
+* license: GNU Lesser General Public License v2.1 
+*/
 
 #ifndef _FF_BUFFER_
 #define _FF_BUFFER_
