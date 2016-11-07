@@ -33,9 +33,14 @@ static int increase_buf(struct ff_buffer *p, int size)
 	
 	if (remain_size <= size) {
 		buf_size_new = ((data_size + size)/p->block_size + 1) * p->block_size;
-		buf_new = (char *) calloc(1, buf_size_new);//malloc(buf_size_new);//calloc(1, buf_size_new);
+#ifdef __APPLE__
+		//very very very slow
+		buf_new = (char *) malloc(buf_size_new);//calloc(1, buf_size_new);//malloc(buf_size_new);//calloc(1, buf_size_new);
 		memcpy(buf_new, ff_buffer_data(p), data_size);
 		free_buf(p);
+#else
+		buf_new = (char *) realloc(p->buf_head, buf_size_new);//malloc(buf_size_new);//calloc(1, buf_size_new);
+#endif
 
 		p->buf_head = buf_new;
 		p->buf_tail = p->buf_head + buf_size_new;
