@@ -1,3 +1,6 @@
+[libns3p-1.2.11]
+* libffmpeg: remove calloc & free when increase buf
+
 [libns3p-1.2.10]
 * update makefile & source
 
