@@ -110,6 +110,8 @@ typedef struct {
 	int64_t pts;
 	int32_t num_frame;
 	int32_t frame_size;
+	
+	ff_codec sub;
 
 	//for sync video/audio if start PTS are not ZERO
 	int64_t init_vid_dts;
@@ -158,7 +160,7 @@ static int ff_codec_close(ff_codec *c)
 	return 0;
 }
 
-static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatContext *fmt_ctx, ff_codec *c, int decode_threads)
+static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatContext *fmt_ctx, ff_codec *c, int decode_threads, int stream_idx)
 {
 	int ret;
 	AVStream *st;
@@ -166,9 +168,13 @@ static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatConte
 	AVDictionary *opts = NULL;
 	AVRational r_frame_rate ;
 
-	if ((ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0)) <0) {
-		libffmpeg_setmsg("Could not find %s stream", av_get_media_type_string(type));
-		goto error;
+	if (stream_idx == -1) {
+		if ((ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0)) <0) {
+			libffmpeg_setmsg("Could not find %s stream", av_get_media_type_string(type));
+			goto error;
+		}
+	} else {
+		ret = stream_idx;
 	}
 
 	c->idx = ret;
@@ -241,6 +247,18 @@ static int ff_codec_open(libffmpeg_data *p, enum AVMediaType type, AVFormatConte
 		c->channel_layout = c->dec_ctx->channel_layout;
 		c->channels = c->dec_ctx->channels;
 		c->sample_rate = c->dec_ctx->sample_rate;
+	} else if (c->dec_ctx->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+		int stream_len = 0;
+		int i;
+		stream_len = fmt_ctx->nb_streams;
+		fflog(p->log, p->log_str, "*********************** stream_len:%d", stream_len);
+
+		for (i=0; i<stream_len; i++) {
+			fflog(p->log, p->log_str, 
+				"*********************** codec_type: %d, id:%08X"
+				, fmt_ctx->streams[i]->codec->codec_type
+				, fmt_ctx->streams[i]->codec->codec_id);
+		}
 	}
 
 	return 0;
@@ -517,7 +535,12 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 		goto openaudio;
 	}
 
-	if (ff_codec_open(p, AVMEDIA_TYPE_VIDEO, p->fmt_ctx, &p->vid, cfg->decode_threads) == 0) {
+	//subtitle
+	if (ff_codec_open(p, AVMEDIA_TYPE_SUBTITLE, p->fmt_ctx, &p->sub, cfg->decode_threads, -1) == 0) {
+
+	}
+
+	if (ff_codec_open(p, AVMEDIA_TYPE_VIDEO, p->fmt_ctx, &p->vid, cfg->decode_threads, -1) == 0) {
 		cfg->width = p->vid.width;
 		cfg->height = p->vid.height;
 		cfg->fps_num = p->vid.fps_num;
@@ -605,7 +628,7 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 	}
 
 openaudio:
-	if (ff_codec_open(p, AVMEDIA_TYPE_AUDIO, p->fmt_ctx, &p->aud, cfg->decode_threads) == 0) {
+	if (ff_codec_open(p, AVMEDIA_TYPE_AUDIO, p->fmt_ctx, &p->aud, cfg->decode_threads, -1) == 0) {
 		p->is_aud_first_frame = 1;
 		cfg->audio_type = FIREFLY_TYPE_PCM;
 		cfg->sample_rate = p->sample_rate = 44100;
@@ -1094,6 +1117,130 @@ static int ff_decode_audio_split(libffmpeg_data *p, firefly_buffer *outbuf)
 	return 0;
 }
 
+static int ff_decode_subtitle(libffmpeg_data *p, int stream_idx, firefly_buffer *outbuf)
+{
+	int ret;
+	int i;
+	char line[256];
+	int got_frame = 0;
+	double pkt_pts = 0, pkt_dts = 0, pts = 0;
+	AVSubtitle sub;
+
+	{
+		if (p->pkt.pts != AV_NOPTS_VALUE) {
+			pkt_pts = (p->pkt.pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+			sprintf(line, "pkt_pts: %.3f ", pkt_pts);
+		} else {
+			sprintf(line, "pkt_pts: N/A ");
+		}
+
+		if (p->pkt.dts != AV_NOPTS_VALUE) {
+			pkt_dts = (p->pkt.dts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+			sprintf(line, "pkt_dts: %.3f ", pkt_dts);
+		} else {
+			sprintf(line, "pkt_dts: N/A ");
+		}
+	}
+
+	if ((ret = avcodec_decode_subtitle2(p->fmt_ctx->streams[stream_idx]->codec, &sub, &got_frame, &p->pkt)) < 0) {
+		libffmpeg_setmsg("failed to decode subtitle @ %.3f %.3f ", pkt_pts, pkt_dts);
+		goto error;
+	}
+
+	if (!got_frame) {
+		goto finally;
+	}
+
+	if (sub.pts != AV_NOPTS_VALUE) {
+		pts = sub.pts / (double)AV_TIME_BASE;
+		sprintf(line+strlen(line), "pts: %.3f ", pts);
+	} else {
+		sprintf(line+strlen(line), "pts: N/A ");
+	}
+
+	//sub.format == 0, Graph
+	//sub.format == 1, text ?!
+	sprintf(line+strlen(line), "fmt:%d start:%.3f end:%.3f num_rects:%d"
+		, sub.format, sub.start_display_time / 1000.0f, sub.end_display_time / 1000.0f
+		, sub.num_rects);
+	fflog(p->log, p->log_str, line);
+
+	for (i=0; i<sub.num_rects; i++) {
+		line[0] = 0;
+
+		if (sub.rects[i]->text) { //0 terminated plain UTF-8 text
+			fflog(p->log, p->log_str, "[%d] text:'%s' ", i, sub.rects[i]->text);
+		} else  {
+			fflog(p->log, p->log_str, "[%d] text: N/A ", i);
+		}
+
+		if (sub.rects[i]->ass) { //0 terminated ASS/SSA compatible event line
+			fflog(p->log, p->log_str, "[%d] ass:'%s' ", i, sub.rects[i]->ass);
+		} else  {
+			fflog(p->log, p->log_str, "[%d] ass: N/A ", i);
+		}
+	}
+
+	avsubtitle_free(&sub);
+
+#if 0
+	in_vid_plane = p->frame->data;
+	in_vid_stride = p->frame->linesize;
+	
+	p->video_failed_decode_count = 0;
+	pts = av_frame_get_best_effort_timestamp(p->frame) * av_q2d(p->fmt_ctx->streams[stream_idx]->codec->time_base);
+	//pts2 = (p->frame->pkt_pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+	//dts2 = (p->frame->pkt_pts*p->fmt_ctx->streams[stream_idx]->codec->time_base.num)/(double)p->fmt_ctx->streams[stream_idx]->codec->time_base.den;
+	//printf("avframe pts:%f pkt_pts:%"PRId64" %.4f pkt_dts:%"PRId64" %.4f\n", pts, p->frame->pkt_pts, pts2, p->frame->pkt_dts, dts2);
+
+	outbuf->header.pts = ff_video_ts_mapping(pts, p->vid.fps_f)/* - outbuf->header.offset_pts*/;
+	outbuf->header.dts = ff_video_ts_mapping(p->first_vid_dts, p->vid.fps_f);
+
+	if (double_equals(firefly_video_pts(outbuf), pts, 0.001) == 0) {
+#if 1
+		fflog(p->log, p->log_str, "[VID] org_pts:%f != new_pts:%f", pts, firefly_video_pts(outbuf));
+		fflog(p->log, p->log_str, "\t%f x %f = %d", pts, p->vid.fps_f, (int)(pts*p->vid.fps_f));
+		fflog(p->log, p->log_str, "\t%d / %f = %f"
+			, (int)(pts*p->vid.fps_f)
+			, p->vid.fps_f
+			, firefly_video_pts(outbuf));
+#endif
+	}
+
+	if (p->vid_cvrt) {
+		sws_scale(p->vid_cvrt
+			, (const uint8_t **)in_vid_plane, in_vid_stride
+			, 0, p->vid.height
+			, outbuf->plane, outbuf->stride);
+#if 0
+		if (already_prt++ == 0) {
+		fflog(p->log, p->log_str, "sws in_stide:%d %d %d out_stride:%d %d %d wh:%d"
+			, in_vid_stride[0], in_vid_stride[1], in_vid_stride[2]
+			, outbuf->stride[0], outbuf->stride[1], outbuf->stride[2]
+			, p->vid.width, p->vid.height);
+		}
+#endif
+	} else {
+		av_image_copy(
+			outbuf->plane, outbuf->stride,
+			(const uint8_t **)(in_vid_plane), in_vid_stride,
+			p->vid.pix_fmt, p->vid.width, p->vid.height);
+#if 0
+		fflog(p->log, p->log_str, "in_stide:%d %d %d out_stride:%d %d %d wh:%d"
+			, in_vid_stride[0], in_vid_stride[1], in_vid_stride[2]
+			, outbuf->stride[0], outbuf->stride[1], outbuf->stride[2]
+			, p->vid.width, p->vid.height);
+#endif
+	}
+#endif
+
+	return 1;
+finally:
+	return 0;
+error:
+	return -1;
+}
+
 int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libffmpeg_dec *dec)*/
 {
 	libffmpeg_data *p = (libffmpeg_data *)h;
@@ -1228,6 +1375,14 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 			p->aud_outbuf->header.pts -= p->init_vid_dts_secs*(double)p->sample_rate;			//sync_pts_to_zero
 			*in = p->aud_outbuf;
 		}
+	} else if (p->sub.dec_ctx &&  stream_idx == p->sub.idx) {
+		if ((ret = ff_decode_subtitle(p, stream_idx, NULL)) < 0) {
+			goto error;
+		}
+
+		if (ret) {
+			//got frame
+		}
 	}
 
 finally:
@@ -1354,6 +1509,9 @@ int EXPORTS MINGWAPI libffmpeg_close(libffmpeg_t h)
 	if (p->aud_cvrt) {
 		swr_free(&p->aud_cvrt);
 	}
+
+	//subtitle
+	ff_codec_close(&p->sub);
 
 	//free frame
 	if (p->frame) {
