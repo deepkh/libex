@@ -1,3 +1,7 @@
+[libns3p-1.2.12]
+* libffmpeg: add: extract text based subtitle
+(ass,UTF-8 extraction), but still not production
+
 [libns3p-1.2.11]
 * libffmpeg: remove calloc & free when increase buf
 
