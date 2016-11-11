@@ -60,3 +60,6 @@ $(RUNTIME)/lib/libfdk-aac.$(DLLASUFFIX):
 $(RUNTIME)/lib/libavcodec.$(DLLASUFFIX):
 	$(MAKE) -j4 -C $(ROOT)/libpkg $@
 
+clean: default_clean
+	
+

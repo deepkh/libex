@@ -21,3 +21,7 @@ all: default
 install: all
 	$(CP) $(TARGET_NAME) $(RUNTIME)/bin
 
+clean: default_clean
+	
+
+
