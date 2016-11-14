@@ -536,9 +536,11 @@ int EXPORTS MINGWAPI libffmpeg_open(libffmpeg_t *h, libffmpeg_config *cfg, libff
 	}
 
 	//subtitle
+#if 0
 	if (ff_codec_open(p, AVMEDIA_TYPE_SUBTITLE, p->fmt_ctx, &p->sub, cfg->decode_threads, -1) == 0) {
 
 	}
+#endif
 
 	if (ff_codec_open(p, AVMEDIA_TYPE_VIDEO, p->fmt_ctx, &p->vid, cfg->decode_threads, -1) == 0) {
 		cfg->width = p->vid.width;
