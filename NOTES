@@ -1,3 +1,6 @@
+[libns3p-1.2.14]
+* update mk
+
 [libns3p-1.2.13]
 * libffmpeg: disable subtitle decoding
 * update makefile
