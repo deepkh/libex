@@ -27,7 +27,7 @@ ifdef HAVE_LIB_LOAD_PNG
 endif
 
 ifdef HAVE_LIB_UCHAR_DET
-	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libuchardet.a
+#	LIB_CONFIGURE_FILE += $(RUNTIME)/lib/libuchardet.a
 endif
 
 ifdef HAVE_LIB_JANSOON
