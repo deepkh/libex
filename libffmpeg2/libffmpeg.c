@@ -698,6 +698,7 @@ finally:
 		fflog(p->log, p->log_str, "%s %dx%d,%s,%f"
 			, p->vid.dec_ctx->codec->name, p->vid.width, p->vid.height, av_get_pix_fmt_name(p->vid.pix_fmt)
 			, (double)p->vid.fps_num / (double)p->vid.fps_den);
+		sprintf(cfg->vcodec, "%s", p->vid.dec_ctx->codec->name);
 	} else if (cfg->video_type == 0) {
 		cfg->audio_only = 1;
 	}
