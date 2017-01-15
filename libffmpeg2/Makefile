@@ -12,7 +12,7 @@ LDFLAGS += -lavcodec$(LDLLSUFFIX) \
 		   -lswscale$(LDLLSUFFIX)
 		  #-lpostproc$(LDLLSUFFIX)
 
-include $(ROOT)/mk/Makefile.dep.post
+#include $(ROOT)/mk/Makefile.dep.post
 
 TARGET_DLL = ffmpeg.$(DLLSUFFIX)
 TARGET_NAME = $(TARGET_DLL)

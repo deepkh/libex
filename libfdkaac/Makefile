@@ -5,7 +5,7 @@ include $(ROOT)/mk/Makefile.dep.pre
 
 LDFLAGS += -lfdk-aac$(LDLLSUFFIX)
 
-include $(ROOT)/mk/Makefile.dep.post
+#include $(ROOT)/mk/Makefile.dep.post
 
 TARGET_DLL = fdkaac.$(DLLSUFFIX)
 TARGET_NAME = $(TARGET_DLL)

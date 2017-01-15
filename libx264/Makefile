@@ -5,7 +5,7 @@ include $(ROOT)/mk/Makefile.dep.pre
 
 LDFLAGS += -lx264$(LDLLSUFFIX)
 
-include $(ROOT)/mk/Makefile.dep.post
+#include $(ROOT)/mk/Makefile.dep.post
 
 TARGET_DLL = x264.$(DLLSUFFIX)
 TARGET_NAME = $(TARGET_DLL)
