@@ -1333,7 +1333,7 @@ int EXPORTS MINGWAPI libffmpeg_decode(libffmpeg_t h, firefly_buffer **in)/*libff
 			p->vid_outbuf->header.pts -= p->init_vid_dts;				//sync_pts_to_zero
 			*in = p->vid_outbuf;
 		}
-	}else if (p->aud.dec_ctx &&  stream_idx == p->aud.idx) {
+	}else if (p->aud.dec_ctx &&  stream_idx == p->aud.idx && p->cfg->disable_decode_audio == 0) {
 		p->aud_outbuf->header.num_frame = 0;
 		p->aud_outbuf->buf_size = 0;
 		
