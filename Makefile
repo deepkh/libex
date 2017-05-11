@@ -4,11 +4,15 @@
 
 SHELL=/bin/sh
 
+TARXZ = tar -cJvpf
+DATE=`date +%Y%m%d`
+GITHASH = $(shell ./git_hash.sh)
+VERSION = $(shell ./cat_version.sh)
 include $(ROOT)/Makefile.def
 include $(ROOT)/Makefile.dep
 include $(ROOT)/Makefile.common
 
-all: default 
+all: default
 
 ##########################################
 #				libcodec
@@ -60,6 +64,9 @@ $(RUNTIME)/lib/libfdk-aac.$(DLLASUFFIX):
 $(RUNTIME)/lib/libavcodec.$(DLLASUFFIX):
 	$(MAKE) -j4 -C $(ROOT)/libpkg $@
 
+tar:
+	$(TARXZ) netsync_runtime_$(DATE)_$(VERSION)_$(GITHASH).tar.xz runtime
+
 clean: default_clean
-	
+	$(RM) runtime build libfdkaac/fdkaac.def libffmpeg2/ffmpeg.def libx264/x264.def *.xz
 
