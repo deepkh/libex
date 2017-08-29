@@ -1,6 +1,6 @@
 [submodule "mk"]
 	path = mk
-	url = https://github.com/deepkh/mk.git
+	url = https://git.netsync.tv:3001/netsync/mk.git
 [submodule "libpkg"]
 	path = libpkg
-	url = https://github.com/deepkh/libpkg.git
+	url = https://git.netsync.tv:3001/netsync/libpkg.git
