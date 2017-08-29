@@ -14,4 +14,4 @@ export HAVE_LIB_X264=1
 export HAVE_LIB_FDKAAC=1
 export HAVE_LIB_FFMPEG=1
 
-export PLATFORM_DEP="mingw32"
+export PLATFORM_DEP="mingw"

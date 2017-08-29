@@ -1,4 +1,4 @@
-source mk/source.arm_cortex-a7.sh
+source mk/source.arm-linux-gnueabihf.sh
 
 export HAVE_DEF_SSL=1
 export HAVE_DEF_ICONV=1
@@ -14,4 +14,4 @@ export HAVE_LIB_X264=1
 export HAVE_LIB_FDKAAC=1
 export HAVE_LIB_FFMPEG=1
 
-export PLATFORM_DEP="arm_cortex-a7"
+export PLATFORM_DEP="arm-linux-gnueabihf"
