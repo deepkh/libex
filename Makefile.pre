@@ -1,0 +1,30 @@
+### NetSync.tv Third-party library build scripts
+### Grey Huang <deepkh@gmail.com>
+### 2017-08-30
+
+SHELL=/bin/sh
+
+ifdef HAVE_LIB_X264
+	LIB_NS3P_FILE += $(RUNTIME)/bin/x264.$(DLLSUFFIX)
+endif
+
+ifdef HAVE_LIB_FDKAAC
+	LIB_NS3P_FILE += $(RUNTIME)/bin/fdkaac.$(DLLSUFFIX)
+endif
+
+ifdef HAVE_LIB_FFMPEG
+	LIB_NS3P_FILE += $(RUNTIME)/bin/ffmpeg.$(DLLSUFFIX)
+endif
+
+$(RUNTIME)/bin/fdkaac.$(DLLSUFFIX): 
+	$(MAKE) -C libfdkaac install; \
+	$(MAKE) -C libfdkaac clean;
+
+$(RUNTIME)/bin/x264.$(DLLSUFFIX): 
+	$(MAKE) -C libx264 install; \
+	$(MAKE) -C libx264 clean;
+
+$(RUNTIME)/bin/ffmpeg.$(DLLSUFFIX): 
+	$(MAKE) -C libffmpeg2 install; \
+	$(MAKE) -C libffmpeg2 clean;
+

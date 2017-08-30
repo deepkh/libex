@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
-include $(ROOT)/mk/Makefile.def
-include $(ROOT)/mk/Makefile.dep.pre
+include $(ROOT)/mk/Makefile.pre
+include $(ROOT)/mk/Makefile.post
 
 LDFLAGS += -lavcodec$(LDLLSUFFIX) \
 		   -lavfilter$(LDLLSUFFIX) \

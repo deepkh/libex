@@ -1,8 +1,0 @@
-### NetSync.tv Third-party library build scripts
-### Grey Huang <deepkh@gmail.com>
-### 2016
-
-SHELL=/bin/sh
-
-include $(ROOT)/mk/Makefile.def
-

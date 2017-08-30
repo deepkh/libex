@@ -1,5 +1,7 @@
 source mk/source.linux.sh
 
+export LIBPKG=$ROOT/libpkg
+
 export HAVE_DEF_SSL=1
 export HAVE_DEF_ICONV=1
 
