@@ -17,14 +17,14 @@ ifdef HAVE_LIB_FFMPEG
 endif
 
 $(RUNTIME)/bin/fdkaac.$(DLLSUFFIX): 
-	$(MAKE) -C libfdkaac install; \
-	$(MAKE) -C libfdkaac clean;
+	$(MAKE) -C $(LIBNS3P)/libfdkaac install; \
+	$(MAKE) -C $(LIBNS3P)/libfdkaac clean;
 
 $(RUNTIME)/bin/x264.$(DLLSUFFIX): 
-	$(MAKE) -C libx264 install; \
-	$(MAKE) -C libx264 clean;
+	$(MAKE) -C $(LIBNS3P)/libx264 install; \
+	$(MAKE) -C $(LIBNS3P)/libx264 clean;
 
 $(RUNTIME)/bin/ffmpeg.$(DLLSUFFIX): 
-	$(MAKE) -C libffmpeg2 install; \
-	$(MAKE) -C libffmpeg2 clean;
+	$(MAKE) -C $(LIBNS3P)/libffmpeg2 install; \
+	$(MAKE) -C $(LIBNS3P)/libffmpeg2 clean;
 
