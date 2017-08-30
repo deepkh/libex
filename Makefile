@@ -20,6 +20,8 @@ include $(ROOT)/mk/Makefile.common
 all: $(LIB_PKG_FILE) $(LIB_NS3P_FILE)
 
 all2:
+	@echo $(GITHASH)
+	@echo $(VERSION)
 	@echo $(LIB_PKG_FILE)
 	@echo $(LDFLAGS)
 	@echo $(HAVE_LIB_SSL)
