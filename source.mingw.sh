@@ -1,6 +1,7 @@
 source mk/source.mingw.sh
 
-export LIBPKG=$ROOT/libpkg
+export LIBNS3P=$ROOT
+export LIBPKG=$LIBNS3P/libpkg
 
 export HAVE_DEF_SSL=1
 export HAVE_DEF_ICONV=1
