@@ -17,13 +17,13 @@ LDFLAGS += -lavcodec$(LDLLSUFFIX) \
 TARGET_DLL = ffmpeg.$(DLLSUFFIX)
 TARGET_NAME = $(TARGET_DLL)
 
-LIB_FILE = libffmpeg.c ff_buffer.c firefly_common.c
-LIB_OBJS = $(LIB_FILE:.c=.o)
+LIB_C_FILE = libffmpeg.c ff_buffer.c firefly_common.c
+LIB_C_OBJS = $(LIB_C_FILE:.c=.o)
 LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
 
 include $(ROOT)/mk/Makefile.common
 
-all: default
+all: $(TARGET_DLL)
 
 install: all
 	$(CP) $(TARGET_NAME) $(RUNTIME)/bin

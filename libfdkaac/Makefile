@@ -10,18 +10,15 @@ LDFLAGS += -lfdk-aac$(LDLLSUFFIX)
 TARGET_DLL = fdkaac.$(DLLSUFFIX)
 TARGET_NAME = $(TARGET_DLL)
 
-LIB_OBJS = $(LIB_FILE:.c=.o)
 LIB_CXX_FILE = libfdkaac.cpp
 LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
 
 include $(ROOT)/mk/Makefile.common
 
-all: default
+all: $(TARGET_DLL)
 
 install: all
 	$(CP) $(TARGET_NAME) $(RUNTIME)/bin
 
 clean: default_clean
 	
-
-
