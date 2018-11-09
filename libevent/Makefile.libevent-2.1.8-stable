@@ -1,0 +1,25 @@
+SHELL := /bin/bash
+
+
+################ Build external/libevent/libevent-2.1.8.tar.gz ##########
+include $(MK_RESET)
+TARGET_PKG_URL=https://github.com/libevent/libevent/releases/download/release-2.1.8-stable
+TARGET_PKG_FILE=${LIBEVENT_NAME}.${LIBEVENT_SUBNAME}
+TARGET_PKG_DIR=${LIBEVENT_NAME}
+TARGET_PKG_SUBNAME=${LIBEVENT_SUBNAME}
+TARGET_PKG_CONFIG_H=${LIBEVENT_NAME}/${LIBEVENT_CONFIG_LOG}
+PATCH_FILE=libevent-2.1.8-stable.patch
+TARGET_PKG_CONFIG=$(CP) $(EXTERNAL)/patch/$(PATCH_FILE) . && patch -p1 < $(PATCH_FILE) && ./configure --disable-silent-rules 
+ifneq (, $(findstring mingw, $(PLATFORM)))
+TARGET_PKG_CONFIG+=CPPFLAGS="-I$(RUNTIME)/include" LDFLAGS="-L$(RUNTIME)/lib -lssl -lcrypto -lcrypt32" --prefix=$(RUNTIME) --enable-static --disable-shared --disable-samples --host=$(MINGW_W64)
+else ifneq (, $(findstring linux, $(PLATFORM)))
+TARGET_PKG_CONFIG+=CPPFLAGS="-I$(RUNTIME)/include" LDFLAGS="-L$(RUNTIME)/lib -lssl -lcrypto -ldl" --prefix=$(RUNTIME) --enable-static --disable-shared --disable-samples --host=$(MINGW_W64)
+else ifneq (, $(findstring mac, $(PLATFORM)))
+TARGET_PKG_CONFIG+=CPPFLAGS="-I$(RUNTIME)/include" LDFLAGS="-L$(RUNTIME)/lib -lssl -lcrypto -ldl" --prefix=$(RUNTIME) --enable-static --disable-shared --disable-samples --host=$(MINGW_W64)
+else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
+TARGET_PKG_CONFIG+=CPPFLAGS="-I$(RUNTIME)/include" LDFLAGS="-L$(RUNTIME)/lib -lssl -lcrypto -ldl" --prefix=$(RUNTIME) --enable-static --disable-shared --disable-samples --host=$(MINGW_W64)
+endif
+TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBEVENT_LIB}
+TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
+include $(MK_PKG)
+

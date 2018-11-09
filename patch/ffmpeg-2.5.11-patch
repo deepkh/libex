@@ -1,0 +1,12 @@
+diff -ruN ffmpeg-2.5.11-org/libavcodec/h264_parser.c ffmpeg-2.5.11/libavcodec/h264_parser.c
+--- ffmpeg-2.5.11-org/libavcodec/h264_parser.c	2016-02-03 04:42:07.000000000 +0800
++++ ffmpeg-2.5.11/libavcodec/h264_parser.c	2016-03-04 16:06:22.167133500 +0800
+@@ -446,7 +446,7 @@
+     if (q264)
+         return 0;
+     /* didn't find a picture! */
+-    av_log(h->avctx, AV_LOG_ERROR, "missing picture in access unit with size %d\n", buf_size);
++    //av_log(h->avctx, AV_LOG_ERROR, "missing picture in access unit with size %d\n", buf_size);
+     return -1;
+ }
+ 

@@ -1,0 +1,12 @@
+diff -ruN libevent-2.1.8-stable/configure libevent-2.1.8-stable.patch/configure
+--- libevent-2.1.8-stable/configure	2017-01-29 17:51:13.000000000 +0000
++++ libevent-2.1.8-stable.patch/configure	2017-08-07 11:08:22.124000000 +0000
+@@ -13589,7 +13589,7 @@
+   have_openssl=yes
+ 		    OPENSSL_LIBS="$LIBS -l$lib $EV_LIB_GDI $EV_LIB_WS32 $OPENSSL_LIBADD"
+ else
+-  have_openssl=no
++  have_openssl=yes
+ fi
+ 
+ 		LIBS="$save_LIBS"

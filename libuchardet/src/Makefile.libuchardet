@@ -1,0 +1,69 @@
+SHELL := /bin/bash
+
+################ Build runtime/include/libuchardet ##########
+include $(MK_RESET)
+TARGET_DIR = $(RUNTIME_INCLUDE)/$(LIBUCHARDET_NAME)
+TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
+include $(MK_DIR)
+
+################ Build runtime/include/libuchardet/uchardet.h ##########
+include $(MK_RESET)
+LIB_HEADER_TRIGGER = $(LIBUCHARDET_HEADER_TRIGGER)
+LIB_HEADER = CharDistribution.h \
+			JpCntx.h \
+			nsBig5Prober.h \
+			nsCharSetProber.h \
+			nsEscCharsetProber.h \
+			nsEUCJPProber.h \
+			nsEUCKRProber.h \
+			nsEUCTWProber.h \
+			nsGB2312Prober.h \
+			nsHebrewProber.h \
+			nsLatin1Prober.h \
+			nsMBCSGroupProber.h \
+			nsSBCharSetProber.h \
+			nsSBCSGroupProber.h \
+			nsSJISProber.h \
+			nsUniversalDetector.h \
+			nsUTF8Prober.h
+TARGET_HEADER_DIR = $(RUNTIME_INCLUDE)/$(LIBUCHARDET_NAME)
+TARGET_HEADER_TRIGGER = $(TARGET_HEADER_DIR)/$(LIB_HEADER_TRIGGER)
+TARGET_HEADER_TRIGGER_CLEAN = $(TARGET_HEADER_TRIGGER)_clean
+TARGET_HEADER = $(foreach P,$(LIB_HEADER),$(TARGET_HEADER_DIR)/$(P))
+TARGET_HEADER_CLEAN = $(foreach P,$(TARGET_HEADER),$(P)_clean)
+include $(MK_HEADER)
+
+################ Build runtime/lib/libuchardet.a ##########
+include $(MK_RESET)
+TARGET_LIB = $(LIBUCHARDET_LIB)
+TARGET_LIB_CLEAN = $(TARGET_LIB)_clean
+LIB_CXX_FILE += CharDistribution.cpp \
+			JpCntx.cpp \
+			LangBulgarianModel.cpp \
+			LangCyrillicModel.cpp \
+			LangGreekModel.cpp \
+			LangHebrewModel.cpp \
+			LangHungarianModel.cpp \
+			LangThaiModel.cpp \
+			nsBig5Prober.cpp \
+			nsCharSetProber.cpp \
+			nsEscCharsetProber.cpp \
+			nsEscSM.cpp \
+			nsEUCJPProber.cpp \
+			nsEUCKRProber.cpp \
+			nsEUCTWProber.cpp \
+			nsGB2312Prober.cpp \
+			nsHebrewProber.cpp \
+			nsLatin1Prober.cpp \
+			nsMBCSGroupProber.cpp \
+			nsMBCSSM.cpp \
+			nsSBCharSetProber.cpp \
+			nsSBCSGroupProber.cpp \
+			nsSJISProber.cpp \
+			nsUniversalDetector.cpp \
+			nsUTF8Prober.cpp \
+			uchardet.cpp
+LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
+LIB_CXX_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_CXX_OBJS))	
+include $(MK_LIB)
+

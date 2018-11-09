@@ -1,0 +1,28 @@
+SHELL := /bin/bash
+
+################ Build runtime/include/liblodepng ##########
+include $(MK_RESET)
+TARGET_DIR = $(RUNTIME_INCLUDE)/$(LIBLODEPNG_NAME)
+TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
+include $(MK_DIR)
+
+################ Build runtime/include/liblodepng/lodepng.h ##########
+include $(MK_RESET)
+LIB_HEADER_TRIGGER = $(LIBLODEPNG_HEADER_TRIGGER)
+LIB_HEADER= 
+TARGET_HEADER_DIR = $(RUNTIME_INCLUDE)/$(LIBLODEPNG_NAME)
+TARGET_HEADER_TRIGGER = $(TARGET_HEADER_DIR)/$(LIB_HEADER_TRIGGER)
+TARGET_HEADER_TRIGGER_CLEAN = $(TARGET_HEADER_TRIGGER)_clean
+TARGET_HEADER = $(foreach P,$(LIB_HEADER),$(TARGET_HEADER_DIR)/$(P))
+TARGET_HEADER_CLEAN = $(foreach P,$(TARGET_HEADER),$(P)_clean)
+include $(MK_HEADER)
+
+################ Build runtime/lib/liblodepng.a ##########
+include $(MK_RESET)
+TARGET_LIB = $(LIBLODEPNG_LIB)
+TARGET_LIB_CLEAN = $(TARGET_LIB)_clean
+LIB_C_FILE = lodepng.c
+LIB_C_OBJS = $(LIB_C_FILE:.c=.o)
+LIB_C_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_C_OBJS))
+include $(MK_LIB)
+

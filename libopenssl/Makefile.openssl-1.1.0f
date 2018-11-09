@@ -1,0 +1,25 @@
+SHELL := /bin/bash
+
+
+################ Build external/libopenssl/openssl-1.1.0f.tar.gz ##########
+include $(MK_RESET)
+TARGET_PKG_URL=https://www.openssl.org/source
+TARGET_PKG_FILE=${LIBOPENSSL_NAME}.${LIBOPENSSL_SUBNAME}
+TARGET_PKG_DIR=${LIBOPENSSL_NAME}
+TARGET_PKG_SUBNAME=${LIBOPENSSL_SUBNAME}
+TARGET_PKG_CONFIG_H=${LIBOPENSSL_NAME}/${LIBOPENSSL_CONFIG_LOG}
+TARGET_PKG_CONFIG= 
+ifneq (, $(findstring mingw, $(PLATFORM)))
+TARGET_PKG_CONFIG+=perl Configure mingw no-shared no-idea no-mdc2 no-rc5 --prefix=$(RUNTIME)
+else ifneq (, $(findstring linux, $(PLATFORM)))
+TARGET_PKG_CONFIG+=./Configure --prefix=$(RUNTIME) linux-x86_64 no-idea no-mdc2 no-rc5 no-shared
+else ifneq (, $(findstring mac, $(PLATFORM)))
+TARGET_PKG_CONFIG+=./Configure --prefix=$(RUNTIME) darwin64-x86_64-cc no-idea no-mdc2 no-rc5 no-shared
+else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
+TARGET_PKG_CONFIG+=CC="${CROSS_COMPILE1}gcc" AR="${CROSS_COMPILE1}ar" RANLIB="${CROSS_COMPILE1}ranlib" LD="${CROSS_COMPILE1}ld" AS="${CROSS_COMPILE1}as" ./Configure --prefix=$(RUNTIME) linux-armv4 no-asm no-idea no-mdc2 no-rc5 no-shared
+endif
+TARGET_PKG_CONFIG+= && $(MAKE)
+TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBOPENSSL_LIB}
+TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
+include $(MK_PKG)
+

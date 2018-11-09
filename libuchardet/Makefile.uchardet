@@ -1,0 +1,12 @@
+SHELL := /bin/bash
+
+################ Build runtime/bin/netsync.exe ##########
+include $(MK_RESET)
+LDFLAGS = $(LDFLAGS_PRE) $(LIBUCHARDET_LDFLAGS) $(LDFLAGS_POST)
+TARGET_BIN = $(BINUCHARDET_BIN)
+TARGET_BIN_CLEAN = $(TARGET_BIN)_clean
+LIB_CXX_FILE = uchardet.cpp
+LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
+LIB_CXX_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_CXX_OBJS))
+include $(MK_BIN)
+

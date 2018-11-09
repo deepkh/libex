@@ -1,0 +1,30 @@
+SHELL := /bin/bash
+
+################ Build runtime/include/klib ##########
+include $(MK_RESET)
+TARGET_DIR = $(RUNTIME_INCLUDE)/$(LIBKLIB_NAME)
+TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
+include $(MK_DIR)
+
+################ Build runtime/include/klib/khash.h ##########
+include $(MK_RESET)
+LIB_HEADER_TRIGGER = $(LIBKLIB_HEADER_TRIGGER)
+LIB_HEADER= 
+TARGET_HEADER_DIR = $(RUNTIME_INCLUDE)/$(LIBKLIB_NAME)
+TARGET_HEADER_TRIGGER = $(TARGET_HEADER_DIR)/$(LIB_HEADER_TRIGGER)
+TARGET_HEADER_TRIGGER_CLEAN = $(TARGET_HEADER_TRIGGER)_clean
+TARGET_HEADER = $(foreach P,$(LIB_HEADER),$(TARGET_HEADER_DIR)/$(P))
+TARGET_HEADER_CLEAN = $(foreach P,$(TARGET_HEADER),$(P)_clean)
+include $(MK_HEADER)
+
+################ Build runtime/include/klib/khash_fake.h ##########
+include $(MK_RESET)
+LIB_HEADER_TRIGGER = $(LIBKLIB_HEADER_FAKE_TRIGGER)
+LIB_HEADER = khash_fake_2.h
+TARGET_HEADER_DIR = $(RUNTIME_INCLUDE)/$(LIBKLIB_NAME)
+TARGET_HEADER_TRIGGER = $(TARGET_HEADER_DIR)/$(LIB_HEADER_TRIGGER)
+TARGET_HEADER_TRIGGER_CLEAN = $(TARGET_HEADER_TRIGGER)_clean
+TARGET_HEADER = $(foreach P,$(LIB_HEADER),$(TARGET_HEADER_DIR)/$(P))
+TARGET_HEADER_CLEAN = $(foreach P,$(TARGET_HEADER),$(P)_clean)
+include $(MK_HEADER)
+

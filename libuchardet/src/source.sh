@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ ! -z "$1" ]; then
+	unset LIBUCHARDET_PHONY
+	unset LIBUCHARDET_PHONY_CLEAN
+	if [ "${HAVE_LIB_UCHARDET}" = "1" ]; then
+		export LIBUCHARDET_NAME="libuchardet"
+		export LIBUCHARDET_LIB="${LIBUCHARDET_NAME}.${LIBSUFFIX}"
+		export LIBUCHARDET="$1"
+		export LIBUCHARDET_PHONY="LIBUCHARDET"
+		export LIBUCHARDET_PHONY_CLEAN="LIBUCHARDET_CLEAN"
+		export LIBUCHARDET_CFLAGS=
+		export LIBUCHARDET_LDFLAGS="-luchardet"
+		echo "LIBUCHARDET=${LIBUCHARDET}"
+		
+		export LIBUCHARDET_HEADER_TRIGGER="uchardet.h"
+	fi
+fi
+

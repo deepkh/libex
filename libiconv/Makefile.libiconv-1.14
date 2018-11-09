@@ -1,0 +1,23 @@
+SHELL := /bin/bash
+
+
+################ Build external/libiconv/liboconv-1.14.tar.gz ##########
+include $(MK_RESET)
+TARGET_PKG_URL=http://ftp.gnu.org/pub/gnu/libiconv
+TARGET_PKG_FILE=${LIBICONV_NAME}.${LIBICONV_SUBNAME}
+TARGET_PKG_DIR=${LIBICONV_NAME}
+TARGET_PKG_SUBNAME=${LIBICONV_SUBNAME}
+TARGET_PKG_CONFIG_H=${LIBICONV_NAME}/${LIBICONV_CONFIG_LOG}
+ifneq (, $(findstring mingw, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
+else ifneq (, $(findstring linux, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
+else ifneq (, $(findstring mac, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
+else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
+endif
+TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBICONV_LIB}
+TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
+include $(MK_PKG)
+

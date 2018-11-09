@@ -1,0 +1,24 @@
+SHELL := /bin/bash
+
+
+################ Build external/libjansson/jansson-2.7.tar.gz ##########
+include $(MK_RESET)
+TARGET_PKG_URL=http://www.digip.org/jansson/releases
+TARGET_PKG_FILE=${LIBJANSSON_NAME}.${LIBJANSSON_SUBNAME}
+TARGET_PKG_DIR=${LIBJANSSON_NAME}
+TARGET_PKG_SUBNAME=${LIBJANSSON_SUBNAME}
+TARGET_PKG_CONFIG_H=${LIBJANSSON_NAME}/${LIBJANSSON_CONFIG_LOG}
+TARGET_PKG_CONFIG=touch configure.ac aclocal.m4 configure Makefile.am Makefile.in && autoreconf -ivf && ./configure 
+ifneq (, $(findstring mingw, $(PLATFORM)))
+TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --enable-static --disable-shared --host=$(MINGW_W64)
+else ifneq (, $(findstring linux, $(PLATFORM)))
+TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --enable-static --disable-shared
+else ifneq (, $(findstring mac, $(PLATFORM)))
+TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --enable-static --disable-shared
+else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
+TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --enable-static --disable-shared --host=$(MINGW_W64)
+endif
+TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBJANSSON_LIB}
+TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
+include $(MK_PKG)
+
