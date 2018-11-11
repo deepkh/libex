@@ -11,7 +11,9 @@ TARGET_PKG_CONFIG_H=${LIBICONV_NAME}/${LIBICONV_CONFIG_LOG}
 ifneq (, $(findstring mingw, $(PLATFORM)))
 TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 else ifneq (, $(findstring linux, $(PLATFORM)))
-TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
+PATCH_FILE=libiconv-1.14-glibc-2.16.patch
+TARGET_PKG_CONFIG=$(CP) $(EXTERNAL)/patch/$(PATCH_FILE) . && patch -p1 < $(PATCH_FILE) &&   
+TARGET_PKG_CONFIG+=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 else ifneq (, $(findstring mac, $(PLATFORM)))
 TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
