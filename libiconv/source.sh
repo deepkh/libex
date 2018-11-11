@@ -12,7 +12,7 @@ if [ ! -z "$1" ]; then
 		export LIBICONV_PHONY="LIBICONV"
 		export LIBICONV_PHONY_CLEAN="LIBICONV_CLEAN"
 		export LIBICONV_CFLAGS=
-		export LIBICONV_LDFLAGS="-liconv"
+		export LIBICONV_LDFLAGS="-liconv${LDLLSUFFIX}"
 		echo "LIBICONV=${LIBICONV}"
 	fi
 fi
