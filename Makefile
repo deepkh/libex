@@ -11,25 +11,14 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-#!/bin/bash
 
-if [ ! -z "$1" ]; then
-	unset EXTERNAL 
-	unset EXTERNAL_PHONY 
-	unset EXTERNAL_PHONY_CLEAN
+SHELL=/bin/sh
 
-	if [ "${HAVE_LIB_EXTERNAL}" = "1" ]; then
-		export EXTERNAL="$1"
-		export EXTERNAL_PHONY="EXTERNAL"
-		export EXTERNAL_PHONY_CLEAN="EXTERNAL_CLEAN"
-		echo "EXTERNAL=${EXTERNAL}"
-		# load source.${PLATFORM}.sh
-		source "${EXTERNAL}/platform/source.${PLATFORM}.sh"
-	fi
-else
-	# when ${ROOT} = ${EXTERNAL}
-	export HAVE_LIB_EXTERNAL=1
+.DEFAULT_GOAL := all
 
-	# load global env
-	source mk/source.sh
-fi
+include $(EXTERNAL)/Makefile.dep
+
+all: $(EXTERNAL_PHONY)
+
+clean: $(EXTERNAL_PHONY_CLEAN) 
+
