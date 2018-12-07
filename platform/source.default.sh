@@ -11,21 +11,51 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-#!/bin/bash
-
-if [ ! -z "$1" ]; then
-	unset EXTERNAL 
-	unset EXTERNAL_PHONY 
-	unset EXTERNAL_PHONY_CLEAN
-	if [ "${HAVE_LIB_EXTERNAL}" = "1" ]; then
-		export EXTERNAL="$1"
-		export EXTERNAL_PHONY="EXTERNAL"
-		export EXTERNAL_PHONY_CLEAN="EXTERNAL_CLEAN"
-		echo "EXTERNAL=${EXTERNAL}"
-		# load source.${PLATFORM}.sh
-		source "${EXTERNAL}/platform/source.${PLATFORM}.sh"
-	fi
-else
-	# load global env
-	source mk/source.sh
+if [ -z "${HAVE_LIB_SYS}" ];then
+	export HAVE_LIB_SYS=1
 fi
+
+if [ -z "${HAVE_LIB_KLIB}" ];then
+	export HAVE_LIB_KLIB=1
+fi
+
+if [ -z "${HAVE_LIB_LODEPNG}" ];then
+	export HAVE_LIB_LODEPNG=1
+fi
+
+if [ -z "${HAVE_LIB_UCHARDET}" ];then
+	export HAVE_LIB_UCHARDET=1
+fi
+
+if [ -z "${HAVE_BIN_UCHARDET}" ];then
+	export HAVE_BIN_UCHARDET=1
+fi
+
+if [ -z "${HAVE_LIB_ICONV}" ];then
+	export HAVE_LIB_ICONV=1
+fi
+
+if [ -z "${HAVE_LIB_OPENSSL}" ];then
+	export HAVE_LIB_OPENSSL=1
+fi
+
+if [ -z "${HAVE_LIB_EVENT}" ];then
+	export HAVE_LIB_EVENT=1
+fi
+
+if [ -z "${HAVE_LIB_JANSSON}" ];then
+	export HAVE_LIB_JANSSON=1
+fi
+
+if [ -z "${HAVE_LIB_X264}" ];then
+	export HAVE_LIB_X264=1
+fi
+
+if [ -z "${HAVE_LIB_FDKAAC}" ];then
+	export HAVE_LIB_FDKAAC=1
+fi
+
+if [ -z "${HAVE_LIB_FFMPEG}" ];then
+	export HAVE_LIB_FFMPEG=1
+fi
+
