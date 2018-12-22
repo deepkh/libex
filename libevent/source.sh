@@ -20,8 +20,9 @@ if [ ! -z "$1" ]; then
 		export LIBEVENT_NAME="libevent-2.1.8-stable"
 		export LIBEVENT_SUBNAME="tar.gz"
 		export LIBEVENT_LIB="libevent.${LIBSUFFIX}"
-		export LIBEVENT_CONFIG_H="Makefile"
+		export LIBEVENT_CONFIG_H="was_configure"
 		export LIBEVENT="$1"
+		export LIBEVENT_OBJS_DIR=${RUNTIME_OBJS}${LIBEVENT/${ROOT}/""}
 		export LIBEVENT_PHONY="LIBEVENT"
 		export LIBEVENT_PHONY_CLEAN="LIBEVENT_CLEAN"
 		export LIBEVENT_CFLAGS=

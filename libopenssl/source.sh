@@ -20,8 +20,9 @@ if [ ! -z "$1" ]; then
 		export LIBOPENSSL_NAME="openssl-1.1.0f"
 		export LIBOPENSSL_SUBNAME="tar.gz"
 		export LIBOPENSSL_LIB="libssl.${LIBSUFFIX}"
-		export LIBOPENSSL_CONFIG_H="Makefile"
+		export LIBOPENSSL_CONFIG_H="is_configured"
 		export LIBOPENSSL="$1"
+		export LIBOPENSSL_OBJS_DIR=${RUNTIME_OBJS}${LIBOPENSSL/${ROOT}/""}
 		export LIBOPENSSL_PHONY="LIBOPENSSL"
 		export LIBOPENSSL_PHONY_CLEAN="LIBOPENSSL_CLEAN"
 		export LIBOPENSSL_CFLAGS=

@@ -14,13 +14,20 @@
 
 SHELL := /bin/bash
 
-################ Build external/libopenssl/openssl-1.1.0f.tar.gz ##########
 include $(MK_RESET)
-TARGET_PKG_URL=https://www.openssl.org/source
-TARGET_PKG_FILE=${LIBOPENSSL_NAME}.${LIBOPENSSL_SUBNAME}
-TARGET_PKG_DIR=${LIBOPENSSL_NAME}
-TARGET_PKG_SUBNAME=${LIBOPENSSL_SUBNAME}
-TARGET_PKG_CONFIG_H=${LIBOPENSSL_NAME}/${LIBOPENSSL_CONFIG_LOG}
+################ download, mkdir, extract ##########
+TARGET_PKG_BASE_DIR=$(LIBOPENSSL_OBJS_DIR)
+TARGET_PKG_BASE_DIR_CLEAN=$(TARGET_PKG_BASE_DIR)_clean
+TARGET_PKG_NAME=$(LIBOPENSSL_NAME)
+TARGET_PKG_SUBNAME=$(LIBOPENSSL_SUBNAME)
+TARGET_PKG_URL=https://www.openssl.org/source/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE_CLEAN=$(subst .$(TARGET_PKG_SUBNAME),.$(TARGET_PKG_SUBNAME)_clean,$(TARGET_PKG_FILE))
+TARGET_PKG_DIR=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME)
+TARGET_PKG_DIR_CLEAN=$(TARGET_PKG_DIR)_clean
+
+################ configure ##########
+TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBOPENSSL_CONFIG_H}
 TARGET_PKG_CONFIG= 
 ifneq (, $(findstring mingw, $(PLATFORM)))
 TARGET_PKG_CONFIG+=perl Configure mingw no-shared no-idea no-mdc2 no-rc5 --prefix=$(RUNTIME)
@@ -31,7 +38,12 @@ TARGET_PKG_CONFIG+=./Configure --prefix=$(RUNTIME) darwin64-x86_64-cc no-idea no
 else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
 TARGET_PKG_CONFIG+=CC="${CROSS_COMPILE1}gcc" AR="${CROSS_COMPILE1}ar" RANLIB="${CROSS_COMPILE1}ranlib" LD="${CROSS_COMPILE1}ld" AS="${CROSS_COMPILE1}as" ./Configure --prefix=$(RUNTIME) linux-armv4 no-asm no-idea no-mdc2 no-rc5 no-shared
 endif
+# dont build man/docs, but seems not work
+# https://github.com/chef/omnibus-software/blob/master/config/patches/openssl/openssl-1.0.1f-do-not-build-docs.patch
+#TARGET_PKG_CONFIG+= && $(MAKE) install_sw
 TARGET_PKG_CONFIG+= && $(MAKE)
+
+################ make, make install ##########
 TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBOPENSSL_LIB}
 TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
 include $(MK_PKG)

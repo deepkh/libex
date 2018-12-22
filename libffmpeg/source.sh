@@ -20,8 +20,9 @@ if [ ! -z "$1" ]; then
 		export LIBFFMPEG_NAME="ffmpeg-2.8.7"
 		export LIBFFMPEG_SUBNAME="tar.bz2"
 		export LIBFFMPEG_LIB="libavcodec.${DLLASUFFIX}"
-		export LIBFFMPEG_CONFIG_H="Makefile"
+		export LIBFFMPEG_CONFIG_H="was_configure"
 		export LIBFFMPEG="$1"
+		export LIBFFMPEG_OBJS_DIR=${RUNTIME_OBJS}${LIBFFMPEG/${ROOT}/""}
 		export LIBFFMPEG_PHONY="LIBFFMPEG"
 		export LIBFFMPEG_PHONY_CLEAN="LIBFFMPEG_CLEAN"
 		export LIBFFMPEG_CFLAGS=

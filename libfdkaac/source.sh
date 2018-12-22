@@ -20,8 +20,9 @@ if [ ! -z "$1" ]; then
 		export LIBFDKAAC_NAME="fdk-aac-0.1.3"
 		export LIBFDKAAC_SUBNAME="tar.gz"
 		export LIBFDKAAC_LIB="libfdk-aac.${DLLASUFFIX}"
-		export LIBFDKAAC_CONFIG_H="Makefile"
+		export LIBFDKAAC_CONFIG_H="was_configure"
 		export LIBFDKAAC="$1"
+		export LIBFDKAAC_OBJS_DIR=${RUNTIME_OBJS}${LIBFDKAAC/${ROOT}/""}
 		export LIBFDKAAC_PHONY="LIBFDKAAC"
 		export LIBFDKAAC_PHONY_CLEAN="LIBFDKAAC_CLEAN"
 		export LIBFDKAAC_CFLAGS=

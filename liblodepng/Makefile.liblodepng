@@ -14,6 +14,12 @@
 
 SHELL := /bin/bash
 
+################ Build runtime/objs/src ##########
+include $(MK_RESET)
+TARGET_DIR = $(LIBLODEPNG_OBJS_DIR)
+TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
+include $(MK_DIR)
+
 ################ Build runtime/include/liblodepng ##########
 include $(MK_RESET)
 TARGET_DIR = $(RUNTIME_INCLUDE)/$(LIBLODEPNG_NAME)
@@ -36,7 +42,13 @@ include $(MK_RESET)
 TARGET_LIB = $(LIBLODEPNG_LIB)
 TARGET_LIB_CLEAN = $(TARGET_LIB)_clean
 LIB_C_FILE = lodepng.c
-LIB_C_OBJS = $(LIB_C_FILE:.c=.o)
+#LIB_C_OBJS = $(LIB_C_FILE:.c=.o)
+#LIB_C_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_C_OBJS))
+
+OBJS_DIR=$(LIBLODEPNG_OBJS_DIR)
+LIB_C_OBJS = $(addprefix $(OBJS_DIR)/, $(LIB_C_FILE:.c=.o))
 LIB_C_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_C_OBJS))
+LIB_CXX_OBJS = $(addprefix $(OBJS_DIR)/, $(LIB_CXX_FILE:.cpp=.o))
+LIB_CXX_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_CXX_OBJS))
 include $(MK_LIB)
 

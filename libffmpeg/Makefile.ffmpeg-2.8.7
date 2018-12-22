@@ -14,14 +14,20 @@
 
 SHELL := /bin/bash
 
-
-################ Build external/libffmpeg/ffmpeg-2.1.8.tar.gz ##########
 include $(MK_RESET)
-TARGET_PKG_URL=http://ffmpeg.org/releases
-TARGET_PKG_FILE=${LIBFFMPEG_NAME}.${LIBFFMPEG_SUBNAME}
-TARGET_PKG_DIR=${LIBFFMPEG_NAME}
-TARGET_PKG_SUBNAME=${LIBFFMPEG_SUBNAME}
-TARGET_PKG_CONFIG_H=${LIBFFMPEG_NAME}/${LIBFFMPEG_CONFIG_LOG}
+################ download, mkdir, extract ##########
+TARGET_PKG_BASE_DIR=$(LIBFFMPEG_OBJS_DIR)
+TARGET_PKG_BASE_DIR_CLEAN=$(TARGET_PKG_BASE_DIR)_clean
+TARGET_PKG_NAME=$(LIBFFMPEG_NAME)
+TARGET_PKG_SUBNAME=$(LIBFFMPEG_SUBNAME)
+TARGET_PKG_URL=http://ffmpeg.org/releases/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE_CLEAN=$(subst .$(TARGET_PKG_SUBNAME),.$(TARGET_PKG_SUBNAME)_clean,$(TARGET_PKG_FILE))
+TARGET_PKG_DIR=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME)
+TARGET_PKG_DIR_CLEAN=$(TARGET_PKG_DIR)_clean
+
+################ configure ##########
+TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBFFMPEG_CONFIG_H}
 PATCH_FILE=ffmpeg-2.8.7-patch
 ifneq (, $(findstring mingw.linux, $(PLATFORM)))
 else ifneq (, $(findstring mingw, $(PLATFORM)))
@@ -40,6 +46,8 @@ MY_EX_CFLAGS='-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard'
 MY_EX_LDFLAGS=$(MY_EX_CFLAGS)
 TARGET_PKG_CONFIG+=LIBFFMPEG_CONFIG=--prefix=$(RUNTIME) --arch=armel --cpu=cortex-a7 --target-os=linux --cross-prefix=$(CROSS_COMPILE1) --enable-shared --disable-static --enable-runtime-cpudetect --disable-devices --disable-avdevice --disable-sdl --enable-avresample --disable-encoders --disable-muxers --disable-network --disable-protocols --enable-protocol=file --disable-programs --enable-encoder=aac --extra-cflags=$(MY_EX_CFLAGS) --extra-ldflags=$(MY_EX_LDFLAGS) > CFG_RES
 endif
+
+################ make, make install ##########
 TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBFFMPEG_LIB}
 TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
 include $(MK_PKG)

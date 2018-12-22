@@ -20,8 +20,9 @@ if [ ! -z "$1" ]; then
 		export LIBX264_NAME="x264-snapshot-20140712-2245-stable"
 		export LIBX264_SUBNAME="tar.bz2"
 		export LIBX264_LIB="libx264.${DLLASUFFIX}"
-		export LIBX264_CONFIG_H="config.h"
+		export LIBX264_CONFIG_H="is_configured"
 		export LIBX264="$1"
+		export LIBX264_OBJS_DIR=${RUNTIME_OBJS}${LIBX264/${ROOT}/""}
 		export LIBX264_PHONY="LIBX264"
 		export LIBX264_PHONY_CLEAN="LIBX264_CLEAN"
 		export LIBX264_CFLAGS=

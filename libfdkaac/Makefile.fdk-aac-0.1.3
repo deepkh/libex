@@ -14,13 +14,20 @@
 SHELL := /bin/bash
 
 
-################ Build external/libfdkaac/libfdkaac-2.1.8.tar.gz ##########
 include $(MK_RESET)
-TARGET_PKG_URL=https://sourceforge.net/projects/opencore-amr/files/fdk-aac
-TARGET_PKG_FILE=${LIBFDKAAC_NAME}.${LIBFDKAAC_SUBNAME}
-TARGET_PKG_DIR=${LIBFDKAAC_NAME}
-TARGET_PKG_SUBNAME=${LIBFDKAAC_SUBNAME}
-TARGET_PKG_CONFIG_H=${LIBFDKAAC_NAME}/${LIBFDKAAC_CONFIG_LOG}
+################ download, mkdir, extract ##########
+TARGET_PKG_BASE_DIR=$(LIBFDKAAC_OBJS_DIR)
+TARGET_PKG_BASE_DIR_CLEAN=$(TARGET_PKG_BASE_DIR)_clean
+TARGET_PKG_NAME=$(LIBFDKAAC_NAME)
+TARGET_PKG_SUBNAME=$(LIBFDKAAC_SUBNAME)
+TARGET_PKG_URL=https://sourceforge.net/projects/opencore-amr/files/fdk-aac/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE_CLEAN=$(subst .$(TARGET_PKG_SUBNAME),.$(TARGET_PKG_SUBNAME)_clean,$(TARGET_PKG_FILE))
+TARGET_PKG_DIR=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME)
+TARGET_PKG_DIR_CLEAN=$(TARGET_PKG_DIR)_clean
+
+################ configure ##########
+TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBFDKAAC_CONFIG_H}
 TARGET_PKG_CONFIG= 
 ifneq (, $(findstring mingw, $(PLATFORM)))
 TARGET_PKG_CONFIG+=LDFLAGS='-Wl,-static -Wl,--output-def=libfdk-aac-0.def' ./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
@@ -33,6 +40,8 @@ MY_EX_CFLAGS='-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard'
 MY_EX_LDFLAGS=$(MY_EX_CFLAGS)
 TARGET_PKG_CONFIG+=CFLAGS=$(MY_EX_CFLAGS) CXXFLAGS=$(MY_EX_CFLAGS) CPPFLAGS=$(MY_EX_LDFLAGS) LDFLAGS=$(MY_EX_LDFLAGS) ./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 endif
+
+################ make, make install ##########
 TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBFDKAAC_LIB}
 TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
 include $(MK_PKG)

@@ -20,8 +20,9 @@ if [ ! -z "$1" ]; then
 		export LIBJANSSON_NAME="jansson-2.7"
 		export LIBJANSSON_SUBNAME="tar.gz"
 		export LIBJANSSON_LIB="libjansson.${LIBSUFFIX}"
-		export LIBJANSSON_CONFIG_H="Makefile"
+		export LIBJANSSON_CONFIG_H="is_configured"
 		export LIBJANSSON="$1"
+		export LIBJANSSON_OBJS_DIR=${RUNTIME_OBJS}${LIBJANSSON/${ROOT}/""}
 		export LIBJANSSON_PHONY="LIBJANSSON"
 		export LIBJANSSON_PHONY_CLEAN="LIBJANSSON_CLEAN"
 		export LIBJANSSON_CFLAGS=
