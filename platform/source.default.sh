@@ -59,3 +59,7 @@ if [ -z "${HAVE_LIB_FFMPEG}" ];then
 	export HAVE_LIB_FFMPEG=1
 fi
 
+if [ -z "${HAVE_GOCOMPILER}" ];then
+	export HAVE_GOCOMPILER=1
+fi
+
