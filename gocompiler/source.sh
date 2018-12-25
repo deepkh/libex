@@ -20,7 +20,7 @@ if [ ! -z "$1" ]; then
 		if [ "${HOST}" = "Linux" ];then
 			export GOCOMPILER_NAME="go1.9.1.linux-amd64"
 			export GOCOMPILER_SUBNAME="tar.gz"
-		elif [ "${HOST:0:10}" = "MINGW32_NT" ];then
+		elif [ "${HOST}" = "MINGW32_NT" ];then
 			export GOCOMPILER_NAME="go1.9.1.windows-amd64"
 			export GOCOMPILER_SUBNAME="zip"
 		fi

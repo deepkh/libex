@@ -63,3 +63,13 @@ if [ -z "${HAVE_GOCOMPILER}" ];then
 	export HAVE_GOCOMPILER=1
 fi
 
+if [ -z "${HAVE_PROTOBUF}" ];then
+	if [ "${CROSS_COMPILE_MODE}" = "1" ];then
+		export HAVE_PROTOBUF=1
+	fi
+fi
+
+if [ -z "${HAVE_LIB_PROTOBUF}" ];then
+	export HAVE_LIB_PROTOBUF=1
+fi
+
