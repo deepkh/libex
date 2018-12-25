@@ -20,14 +20,20 @@ if [ ! -z "$1" ]; then
 		export LIBPROTOBUF_DOWNLOAD_NAME="v3.6.1"
 		export LIBPROTOBUF_NAME="protobuf-3.6.1"
 		export LIBPROTOBUF_SUBNAME="tar.gz"
-		export LIBPROTOBUF_LIB="libprotobuf.${DLLASUFFIX}"
+		export LIBPROTOBUF_LIB="libprotobuf.${LIBSUFFIX}"
 		export LIBPROTOBUF_CONFIG_H="was_configure"
 		export LIBPROTOBUF="$1"
 		export LIBPROTOBUF_OBJS_DIR=${RUNTIME_OBJS}${LIBPROTOBUF/${ROOT}/""}
 		export LIBPROTOBUF_PHONY="LIBPROTOBUF"
 		export LIBPROTOBUF_PHONY_CLEAN="LIBPROTOBUF_CLEAN"
 		export LIBPROTOBUF_CFLAGS=
-		export LIBPROTOBUF_LDFLAGS="-lprotobuf${LDLLSUFFIX}"
+		# msys2 mingw only produced libprotobuf.a not included the libprotobuf.dll.a
+		# but we desired .dll first
+		if [[ "${HOST}" = "MINGW32_NT"  && "${TARGET}" = "win32" ]];then
+			export LIBPROTOBUF_LDFLAGS="-lprotobuf"
+		else
+			export LIBPROTOBUF_LDFLAGS="-lprotobuf${LDLLSUFFIX}"
+		fi
 		echo "LIBPROTOBUF=${LIBPROTOBUF}"
 	fi
 fi

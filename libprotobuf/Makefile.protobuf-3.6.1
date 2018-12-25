@@ -28,13 +28,13 @@ TARGET_PKG_DIR_CLEAN=$(TARGET_PKG_DIR)_clean
 
 ################ configure ##########
 TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBPROTOBUF_CONFIG_H}
-TARGET_PKG_CONFIG=./autogen.sh && ./configure --disable-silent-rules --prefix=${RUNTIME} --enable-shared --disable-static
+TARGET_PKG_CONFIG=./autogen.sh && ./configure --disable-silent-rules --prefix=${RUNTIME}
+#--enable-shared --enable-static
 
 #add args for cross-compile
 ifneq (, $(findstring 1, $(CROSS_COMPILE_MODE)))
 TARGET_PKG_CONFIG+= --host=${MINGW_W64}
 TARGET_PKG_CONFIG+= --with-protoc=${PROTOCBIN}
-endif
 
 #only working on posix version, win32 version can't working
 ifneq (, $(findstring mingw, $(PLATFORM)))
@@ -42,6 +42,11 @@ TARGET_PKG_CONFIG+= CC=${CC}-posix CXX=${CXX}-posix STRIP=${STRIP} AR=${CC}-ar-p
 else
 TARGET_PKG_CONFIG+= CC=${CC} CXX=${CXX} STRIP=${STRIP} AR=${AR} 
 endif
+
+else
+TARGET_PKG_CONFIG+= CC=${CC} CXX=${CXX} STRIP=${STRIP} AR=${AR} 
+endif
+
 
 ################ make, make install ##########
 #TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBPROTOBUF_LIB}
