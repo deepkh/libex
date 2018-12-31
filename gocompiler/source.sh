@@ -24,10 +24,11 @@ if [ ! -z "$1" ]; then
 			export GOCOMPILER_NAME="go1.9.1.windows-amd64"
 			export GOCOMPILER_SUBNAME="zip"
 		fi
-		export GOCOMPILER_BIN="go${BINSUFFIX}"
 		export GOCOMPILER_CONFIG_H="was_configure"
 		export GOCOMPILER="$1"
 		export GOCOMPILER_OBJS_DIR=${RUNTIME_OBJS}${GOCOMPILER/${ROOT}/""}
+		export GOCOMPILER_BIN="${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}/bin/go${HOST_BINSUFFIX}"
+		export GOCOMPILER_BIN_CLEAN="${GOCOMPILER_BIN}_clean"
 		export GOCOMPILER_PHONY="GOCOMPILER"
 		export GOCOMPILER_PHONY_CLEAN="GOCOMPILER_CLEAN"
 		export GOCOMPILER_CFLAGS=
@@ -49,7 +50,7 @@ if [ ! -z "$1" ]; then
 			export GOOS="darwin"
 			export GOARCH="amd64"
 		fi
-		export GOBIN=${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}/bin/go${BINSUFFIX}
+		export GOBIN=${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}/bin/go${HOST_BINSUFFIX}
 	fi
 fi
 

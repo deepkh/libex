@@ -1,48 +1,38 @@
 SHELL := /bin/bash
 
-################ Build runtime/objs/src ##########
-include $(MK_RESET)
-TARGET_DIR = $(LIBUCHARDET_OBJS_DIR)
-TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
-include $(MK_DIR)
 
-################ Build runtime/include/libuchardet ##########
 include $(MK_RESET)
-TARGET_DIR = $(RUNTIME_INCLUDE)/$(LIBUCHARDET_NAME)
-TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
-include $(MK_DIR)
+################ mk base dir, mk header dir ##########
+TARGET_LIB_BASE_DIR=$(LIBUCHARDET_OBJS_DIR)
+TARGET_LIB_HEADER_BASE_DIR=$(RUNTIME_INCLUDE)/$(LIBUCHARDET_NAME)
+TARGET_LIB_DIRS= \
+		$(TARGET_LIB_BASE_DIR) \
+		$(TARGET_LIB_HEADER_BASE_DIR)
+TARGET_LIB_DIRS_CLEAN=$(addsuffix _clean,$(TARGET_LIB_DIRS))
+TARGET_LIB_HEADERS= \
+		$(TARGET_LIB_HEADER_BASE_DIR)/CharDistribution.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/JpCntx.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsBig5Prober.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsCharSetProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsEscCharsetProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsEUCJPProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsEUCKRProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsEUCTWProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsGB2312Prober.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsHebrewProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsLatin1Prober.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsMBCSGroupProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsSBCharSetProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsSBCSGroupProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsSJISProber.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsUniversalDetector.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/nsUTF8Prober.h \
+		$(TARGET_LIB_HEADER_BASE_DIR)/uchardet.h
+TARGET_LIB_HEADERS_CLEAN=$(addsuffix _clean,$(TARGET_LIB_HEADERS))
 
-################ Build runtime/include/libuchardet/uchardet.h ##########
-include $(MK_RESET)
-LIB_HEADER_TRIGGER = $(LIBUCHARDET_HEADER_TRIGGER)
-LIB_HEADER = CharDistribution.h \
-			JpCntx.h \
-			nsBig5Prober.h \
-			nsCharSetProber.h \
-			nsEscCharsetProber.h \
-			nsEUCJPProber.h \
-			nsEUCKRProber.h \
-			nsEUCTWProber.h \
-			nsGB2312Prober.h \
-			nsHebrewProber.h \
-			nsLatin1Prober.h \
-			nsMBCSGroupProber.h \
-			nsSBCharSetProber.h \
-			nsSBCSGroupProber.h \
-			nsSJISProber.h \
-			nsUniversalDetector.h \
-			nsUTF8Prober.h
-TARGET_HEADER_DIR = $(RUNTIME_INCLUDE)/$(LIBUCHARDET_NAME)
-TARGET_HEADER_TRIGGER = $(TARGET_HEADER_DIR)/$(LIB_HEADER_TRIGGER)
-TARGET_HEADER_TRIGGER_CLEAN = $(TARGET_HEADER_TRIGGER)_clean
-TARGET_HEADER = $(foreach P,$(LIB_HEADER),$(TARGET_HEADER_DIR)/$(P))
-TARGET_HEADER_CLEAN = $(foreach P,$(TARGET_HEADER),$(P)_clean)
-include $(MK_HEADER)
-
-################ Build runtime/lib/libuchardet.a ##########
-include $(MK_RESET)
+################ mk lib ##########
 TARGET_LIB = $(LIBUCHARDET_LIB)
-TARGET_LIB_CLEAN = $(TARGET_LIB)_clean
+TARGET_LIB_CLEAN = $(LIBUCHARDET_LIB_CLEAN)
 LIB_CXX_FILE += CharDistribution.cpp \
 			JpCntx.cpp \
 			LangBulgarianModel.cpp \
@@ -69,13 +59,11 @@ LIB_CXX_FILE += CharDistribution.cpp \
 			nsUniversalDetector.cpp \
 			nsUTF8Prober.cpp \
 			uchardet.cpp
-#LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
-#LIB_CXX_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_CXX_OBJS))
 
-OBJS_DIR=$(LIBUCHARDET_OBJS_DIR)
+OBJS_DIR=$(TARGET_LIB_BASE_DIR)
 LIB_C_OBJS = $(addprefix $(OBJS_DIR)/, $(LIB_C_FILE:.c=.o))
-LIB_C_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_C_OBJS))
+LIB_C_OBJS_CLEAN = $(addsuffix _clean,$(LIB_C_OBJS))
 LIB_CXX_OBJS = $(addprefix $(OBJS_DIR)/, $(LIB_CXX_FILE:.cpp=.o))
-LIB_CXX_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_CXX_OBJS))
+LIB_CXX_OBJS_CLEAN = $(addsuffix _clean,$(LIB_CXX_OBJS))
 include $(MK_LIB)
 

@@ -14,8 +14,6 @@
 
 SHELL=/bin/sh
 
-.PHONY: EXTERNAL BUILD_BINUCHARDET BUILD_LIBEVENT
-
 # BUILD_XXXXX: Make sure the build order when assigned with -jN
 BUILD_BINUCHARDET:
 ifneq (, $(LIBUCHARDET_PHONY))

@@ -21,19 +21,17 @@ if [ ! -z "$1" ]; then
 		export PROTOBUF_DOWNLOAD_NAME="v3.6.1"
 		export PROTOBUF_NAME="protobuf-3.6.1"
 		export PROTOBUF_SUBNAME="tar.gz"
-		export PROTOBUF_BIN="protoc${HOST_BINSUFFIX}"
 		export PROTOBUF_CONFIG_H="was_configure"
 		export PROTOBUF="$1"
 		export PROTOBUF_OBJS_DIR=${RUNTIME_OBJS}${PROTOBUF/${ROOT}/""}
-		#echo "PROTOBUF_OBJS_DIR=${PROTOBUF_OBJS_DIR}"
+		export PROTOBUF_BIN="${PROTOBUF_OBJS_DIR}/${PROTOBUF_NAME}-bin/bin/protoc${HOST_BINSUFFIX}"
+		export PROTOBUF_BIN_CLEAN="${PROTOBUF_BIN}_clean"
 		export PROTOBUF_PHONY="PROTOBUF"
 		export PROTOBUF_PHONY_CLEAN="PROTOBUF_CLEAN"
 		export PROTOBUF_CFLAGS=
 		export PROTOBUF_LDFLAGS=""
 		echo "PROTOBUF=${PROTOBUF}"
 
-		export PROTOCBIN=${PROTOBUF_OBJS_DIR}/${PROTOBUF_NAME}-bin/bin/${PROTOBUF_BIN}
-		#echo "PROTOCBIN=${PROTOCBIN}"
 	fi
 fi
 

@@ -14,25 +14,23 @@
 
 SHELL := /bin/bash
 
-################ Build runtime/objs/src ##########
 include $(MK_RESET)
-TARGET_DIR = $(BINUCHARDET_OBJS_DIR)
-TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
-include $(MK_DIR)
+################ mk base dir, mk header dir ##########
+TARGET_BIN_BASE_DIR=$(BINUCHARDET_OBJS_DIR)
+TARGET_BIN_DIRS= \
+		$(TARGET_BIN_BASE_DIR)
+TARGET_BIN_DIRS_CLEAN=$(addsuffix _clean,$(TARGET_BIN_DIRS))
 
-################ Build runtime/bin/netsync.exe ##########
-include $(MK_RESET)
+################ mk lib ##########
 LDFLAGS = $(LDFLAGS_PRE) $(LIBUCHARDET_LDFLAGS) $(LDFLAGS_POST)
 TARGET_BIN = $(BINUCHARDET_BIN)
-TARGET_BIN_CLEAN = $(TARGET_BIN)_clean
+TARGET_BIN_CLEAN = $(BINUCHARDET_BIN_CLEAN)
 LIB_CXX_FILE = uchardet.cpp
-#LIB_CXX_OBJS = $(LIB_CXX_FILE:.cpp=.o)
-#LIB_CXX_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_CXX_OBJS))
 
 OBJS_DIR=$(BINUCHARDET_OBJS_DIR)
 LIB_C_OBJS = $(addprefix $(OBJS_DIR)/, $(LIB_C_FILE:.c=.o))
-LIB_C_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_C_OBJS))
+LIB_C_OBJS_CLEAN = $(addsuffix _clean,$(LIB_C_OBJS))
 LIB_CXX_OBJS = $(addprefix $(OBJS_DIR)/, $(LIB_CXX_FILE:.cpp=.o))
-LIB_CXX_OBJS_CLEAN = $(subst .o,.o_clean,$(LIB_CXX_OBJS))
+LIB_CXX_OBJS_CLEAN = $(addsuffix _clean,$(LIB_CXX_OBJS))
 include $(MK_BIN)
 

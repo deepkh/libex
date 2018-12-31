@@ -14,20 +14,17 @@
 
 SHELL := /bin/bash
 
-################ Build runtime/include/sys ##########
 include $(MK_RESET)
-TARGET_DIR = $(RUNTIME_INCLUDE)/$(LIBSYS_NAME)
-TARGET_DIR_CLEAN = $(TARGET_DIR)_clean
-include $(MK_DIR)
+################ mk base dir, mk header dir ##########
+TARGET_HEAD_HEADER_BASE_DIR=$(RUNTIME_INCLUDE)/$(LIBSYS_NAME)
+TARGET_HEAD_DIRS= $(TARGET_HEAD_HEADER_BASE_DIR)
+TARGET_HEAD_DIRS_CLEAN=$(addsuffix _clean,$(TARGET_HEAD_DIRS))
+TARGET_HEAD_HEADERS=
+TARGET_HEAD_HEADERS_CLEAN=$(addsuffix _clean,$(TARGET_HEAD_HEADERS))
 
-################ Build runtime/include/sys/queue.h ##########
-include $(MK_RESET)
-LIB_HEADER_TRIGGER = $(LIBSYS_HEADER_TRIGGER)
-LIB_HEADER= 
-TARGET_HEADER_DIR = $(RUNTIME_INCLUDE)/$(LIBSYS_NAME)
-TARGET_HEADER_TRIGGER = $(TARGET_HEADER_DIR)/$(LIB_HEADER_TRIGGER)
-TARGET_HEADER_TRIGGER_CLEAN = $(TARGET_HEADER_TRIGGER)_clean
-TARGET_HEADER = $(foreach P,$(LIB_HEADER),$(TARGET_HEADER_DIR)/$(P))
-TARGET_HEADER_CLEAN = $(foreach P,$(TARGET_HEADER),$(P)_clean)
+################ mk lib ##########
+TARGET_HEAD = $(LIBSYS_HEAD_HEADER)
+TARGET_HEAD_CLEAN = $(LIBSYS_HEAD_HEADER_CLEAN)
+
 include $(MK_HEADER)
 

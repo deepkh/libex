@@ -19,10 +19,11 @@ if [ ! -z "$1" ]; then
 	if [ "${HAVE_LIB_ICONV}" = "1" ]; then
 		export LIBICONV_NAME="libiconv-1.14"
 		export LIBICONV_SUBNAME="tar.gz"
-		export LIBICONV_LIB="libiconv.${DLLASUFFIX}"
 		export LIBICONV_CONFIG_H="is_configured"
 		export LIBICONV="$1"
 		export LIBICONV_OBJS_DIR=${RUNTIME_OBJS}${LIBICONV/${ROOT}/""}
+		export LIBICONV_LIB="${RUNTIME_LIB}/libiconv.${DLLASUFFIX}"
+		export LIBICONV_LIB_CLEAN="${LIBICONV_LIB}_clean"
 		export LIBICONV_PHONY="LIBICONV"
 		export LIBICONV_PHONY_CLEAN="LIBICONV_CLEAN"
 		export LIBICONV_CFLAGS=

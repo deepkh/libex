@@ -17,14 +17,14 @@ SHELL := /bin/bash
 include $(MK_RESET)
 ################ download, mkdir, extract ##########
 TARGET_PKG_BASE_DIR=$(LIBX264_OBJS_DIR)
-TARGET_PKG_BASE_DIR_CLEAN=$(TARGET_PKG_BASE_DIR)_clean
+TARGET_PKG_BASE_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_BASE_DIR))
 TARGET_PKG_NAME=$(LIBX264_NAME)
 TARGET_PKG_SUBNAME=$(LIBX264_SUBNAME)
 TARGET_PKG_URL=https://mirror.yandex.ru/mirrors/ftp.videolan.org/x264/snapshots/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
 TARGET_PKG_FILE=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
-TARGET_PKG_FILE_CLEAN=$(subst .$(TARGET_PKG_SUBNAME),.$(TARGET_PKG_SUBNAME)_clean,$(TARGET_PKG_FILE))
+TARGET_PKG_FILE_CLEAN=$(addsuffix _clean,$(TARGET_PKG_FILE))
 TARGET_PKG_DIR=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME)
-TARGET_PKG_DIR_CLEAN=$(TARGET_PKG_DIR)_clean
+TARGET_PKG_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_DIR))
 
 ################ configure ##########
 TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBX264_CONFIG_H}
@@ -42,8 +42,8 @@ TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --disable-cli --enable-shared --host=$(MI
 endif
 
 ################ make, make install ##########
-TARGET_PKG_LIB=${RUNTIME_LIB}/${LIBX264_LIB}
-TARGET_PKG_LIB_CLEAN=${TARGET_PKG_LIB}_clean
+TARGET_PKG_LIB=${LIBX264_LIB}
+TARGET_PKG_LIB_CLEAN=${LIBX264_LIB_CLEAN}
 include $(MK_PKG)
 
 
