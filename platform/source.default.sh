@@ -73,3 +73,9 @@ if [ -z "${HAVE_LIB_PROTOBUF}" ];then
 	export HAVE_LIB_PROTOBUF=1
 fi
 
+if [ -z "${HAVE_I686W64MINGW32DLLS}" ];then
+	if [[ "${PLATFORM}" = "mingw" || "${PLATFORM}" = "mingw.linux" ]];then	
+		export HAVE_I686W64MINGW32DLLS=1
+	fi
+fi
+
