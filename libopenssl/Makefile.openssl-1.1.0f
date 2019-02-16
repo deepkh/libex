@@ -30,7 +30,8 @@ TARGET_PKG_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_DIR))
 TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBOPENSSL_CONFIG_H}
 TARGET_PKG_CONFIG= 
 ifneq (, $(findstring mingw, $(PLATFORM)))
-TARGET_PKG_CONFIG+=perl Configure mingw no-shared no-idea no-mdc2 no-rc5 --prefix=$(RUNTIME)
+#TARGET_PKG_CONFIG+=perl Configure mingw no-shared no-idea no-mdc2 no-rc5 --prefix=$(RUNTIME)
+TARGET_PKG_CONFIG+=perl Configure mingw64 no-shared no-idea no-mdc2 no-rc5 --prefix=$(RUNTIME)
 else ifneq (, $(findstring linux, $(PLATFORM)))
 TARGET_PKG_CONFIG+=./Configure --prefix=$(RUNTIME) linux-x86_64 no-idea no-mdc2 no-rc5 no-shared
 else ifneq (, $(findstring mac, $(PLATFORM)))
