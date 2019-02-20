@@ -79,3 +79,22 @@ if [ -z "${HAVE_I686W64MINGW32DLLS}" ];then
 	fi
 fi
 
+if [ -z "${HAVE_LIB_MOSQUITTO_ALL}" ];then
+	export HAVE_LIB_MOSQUITTO_ALL=1
+fi
+
+if [ -z "${HAVE_LIB_MOSQUITTO}" ];then
+	export HAVE_LIB_MOSQUITTO=1
+fi
+
+if [ -z "${HAVE_BIN_MOSQUITTO_PUB}" ];then
+	export HAVE_BIN_MOSQUITTO_PUB=1
+fi
+
+if [ -z "${HAVE_BIN_MOSQUITTO_SUB}" ];then
+	export HAVE_BIN_MOSQUITTO_SUB=1
+fi
+
+if [ -z "${HAVE_BIN_MOSQUITTO}" ];then
+	export HAVE_BIN_MOSQUITTO=1
+fi

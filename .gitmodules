@@ -1,3 +1,6 @@
 [submodule "mk"]
 	path = mk
 	url = https://git.netsync.tv:3001/netsync/mk.git
+[submodule "libmosquitto"]
+	path = libmosquitto
+	url = https://github.com/deepkh/mosquitto
