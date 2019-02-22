@@ -98,3 +98,7 @@ fi
 if [ -z "${HAVE_BIN_MOSQUITTO}" ];then
 	export HAVE_BIN_MOSQUITTO=1
 fi
+
+if [ -z "${HAVE_BIN_MOSQUITTO_PASSWD}" ];then
+	export HAVE_BIN_MOSQUITTO_PASSWD=1
+fi
