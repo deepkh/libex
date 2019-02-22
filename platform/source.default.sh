@@ -102,3 +102,7 @@ fi
 if [ -z "${HAVE_BIN_MOSQUITTO_PASSWD}" ];then
 	export HAVE_BIN_MOSQUITTO_PASSWD=1
 fi
+
+if [ -z "${HAVE_LIB_JSONCPP}" ];then
+	export HAVE_LIB_JSONCPP=1
+fi
