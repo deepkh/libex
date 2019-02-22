@@ -4,3 +4,6 @@
 [submodule "libmosquitto"]
 	path = libmosquitto
 	url = https://github.com/deepkh/mosquitto
+[submodule "libjsoncpp"]
+	path = libjsoncpp
+	url = https://git.netsync.tv:3001/netsync/libjsoncpp.git
