@@ -29,7 +29,7 @@ TARGET_PKG_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_DIR))
 ################ configure ##########
 TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBEVENT_CONFIG_H}
 PATCH_FILE=libevent-2.1.8-stable.patch
-TARGET_PKG_CONFIG=$(CP) $(EXTERNAL)/patch/$(PATCH_FILE) . && patch -p1 < $(PATCH_FILE) && ./configure --disable-silent-rules 
+TARGET_PKG_CONFIG=$(CP) $(EXTERNAL)/patch/$(PATCH_FILE) . && patch -p1 < $(PATCH_FILE) && ./configure --disable-silent-rules --disable-samples --disable-libevent-regress
 ifneq (, $(findstring mingw, $(PLATFORM)))
 TARGET_PKG_CONFIG+=CPPFLAGS="-I$(RUNTIME)/include" LDFLAGS="-L$(RUNTIME)/lib -lssl -lcrypto -lcrypt32" --prefix=$(RUNTIME) --enable-static --disable-shared --disable-samples --host=$(MINGW_W64)
 else ifneq (, $(findstring linux, $(PLATFORM)))
