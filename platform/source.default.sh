@@ -106,3 +106,7 @@ fi
 if [ -z "${HAVE_LIB_JSONCPP}" ];then
 	export HAVE_LIB_JSONCPP=1
 fi
+
+if [ -z "${HAVE_NSIS}" ];then
+	export HAVE_NSIS=1
+fi

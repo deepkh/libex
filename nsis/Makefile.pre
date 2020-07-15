@@ -1,0 +1,14 @@
+### NetSync.tv Third-party library build scripts
+### Grey Huang <deepkh@gmail.com>
+### 2016
+
+SHELL=/bin/sh
+
+LIB_CONFIGURE_FILE += $(BUILD)
+LIB_CONFIGURE_FILE += $(PKG)
+
+ifneq (, $(findstring mingw, $(CROSS_COMPILE1)))
+	LIB_CONFIGURE_FILE += $(BUILD)/nsis
+	MAKENSIS_BIN = $(BUILD)/nsis/makensis
+endif
+
