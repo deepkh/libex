@@ -16,7 +16,7 @@ SHELL=/bin/sh
 
 .DEFAULT_GOAL := all
 
-include $(EXTERNAL)/Makefile.dep
+include $(EXTERNAL)/${MAKEFILE_DEP}
 
 all: $(EXTERNAL_PHONY)
 

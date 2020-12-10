@@ -23,8 +23,12 @@ if [ ! -z "$1" ]; then
 		export EXTERNAL_PHONY="EXTERNAL"
 		export EXTERNAL_PHONY_CLEAN="EXTERNAL_CLEAN"
 		echo "EXTERNAL=${EXTERNAL}"
-		# load source.${PLATFORM}.sh
-		source "${EXTERNAL}/platform/source.${PLATFORM}.sh"
+		if [ -f "${EXTERNAL}/source.custom.sh" ]; then
+			source "${EXTERNAL}/source.custom.sh"
+		else 
+			# build all packages
+			source "${EXTERNAL}/platform/source.${PLATFORM}.sh"
+		fi
 	fi
 else
 	# when ${ROOT} = ${EXTERNAL}
