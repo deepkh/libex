@@ -1,4 +1,4 @@
-## A third party library build collection
+## A C/C++ third party library build collection
 
 This repo can help who would like to build the following library which target for linux_x86-64 and windows_x86-64 on single ubuntu/debian build server. Also is the third party library build scrips for [Netsync Media Server](https://netsync.tv). 
 
