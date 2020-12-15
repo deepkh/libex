@@ -1,9 +1,9 @@
 [submodule "mk"]
 	path = mk
-	url = https://git.netsync.tv:3001/netsync/mk.git
+	url = https://git.netsync.tv/netsync/mk.git
 [submodule "libjsoncpp"]
 	path = libjsoncpp
-	url = https://git.netsync.tv:3001/netsync/libjsoncpp.git
+	url = https://git.netsync.tv/netsync/libjsoncpp.git
 [submodule "libmosquitto"]
 	path = libmosquitto
-	url = https://git.netsync.tv:3001/netsync/libmosquitto.git
+	url = https://git.netsync.tv/netsync/libmosquitto.git

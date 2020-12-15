@@ -37,7 +37,7 @@ if [ ! -z "$1" ]; then
 
 		#export go env
 		export GOROOT=${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}
-		if [ "${TARGET}" = "win32" ];then
+		if [ "${TARGET}" = "win64" ];then
 			export GOOS="windows"
 			export GOARCH="amd64"
 		elif [ "${TARGET}" = "linux64" ];then
