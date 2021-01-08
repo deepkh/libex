@@ -21,7 +21,7 @@ Currently only tested on host of Debian-Stretch with toolchains of `GNU/GCC 6.3.
 * [LodePNG 20141130](https://lodev.org/lodepng/)
 * [mosquitto 1.5.7](https://mosquitto.org/) (build with mosquitto (broker), mosquitto_pub, mosquitto_sub, libmosquitto.so)
 * [openssl 1.1.0f](https://www.openssl.org/)
-* [protobuf 3.6.1](https://github.com/protocolbuffers/protobuf) 
+* [protobuf 3.14.0](https://github.com/protocolbuffers/protobuf) 
 * queue.h (OpenBSD: queue.h,v 1.16 2000/09/07 19:47:59, TAILQ_* list header based library) 
 * [uchardet](https://github.com/BYVoid/uchardet)
 
