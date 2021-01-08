@@ -67,10 +67,10 @@ if [ ! -z "$1" ]; then
 		export GOMODINIT="${GOBIN} mod init"
 		alias GOMODINIT="${GOMODINIT}"
 		
-    export GOTEST="${GOBIN} test"
+		export GOTEST="${GOBIN} test"
 		alias GOTEST="${GOTEST}"
 
-    export GOTESTV="${GOBIN} test -v"
+		export GOTESTV="${GOBIN} test -v"
 		alias GOTESTV="${GOTESTV}"
 
 		alias GOALIAS="cd ../ && source source.sh && cd hello"
