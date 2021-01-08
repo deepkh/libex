@@ -18,10 +18,10 @@ if [ ! -z "$1" ]; then
 	unset GOCOMPILER_PHONY_CLEAN
 	if [ "${HAVE_GOCOMPILER}" = "1" ]; then
 		if [ "${HOST}" = "Linux" ];then
-			export GOCOMPILER_NAME="go1.9.1.linux-amd64"
+			export GOCOMPILER_NAME="go1.15.6.linux-amd64"
 			export GOCOMPILER_SUBNAME="tar.gz"
 		elif [ "${HOST}" = "MINGW32_NT" ];then
-			export GOCOMPILER_NAME="go1.9.1.windows-amd64"
+			export GOCOMPILER_NAME="go1.15.6.windows-amd64"
 			export GOCOMPILER_SUBNAME="zip"
 		fi
 		export GOCOMPILER_CONFIG_H="was_configure"
@@ -50,7 +50,29 @@ if [ ! -z "$1" ]; then
 			export GOOS="darwin"
 			export GOARCH="amd64"
 		fi
+		
+		#some go helper function
 		export GOBIN=${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}/bin/go${HOST_BINSUFFIX}
+		alias GOBIN=${GOBIN}
+		
+		export GOVERSION="${GOBIN} version"
+		alias GOVERSION="${GOVERSION}"
+		
+		export GOBUILD="${GOBIN} build -v"
+		alias GOBUILD="${GOBUILD}"
+			
+		export GORUN="${GOBIN} run"
+		alias GORUN="${GORUN}"
+			
+		export GOMODINIT="${GOBIN} mod init"
+		alias GOMODINIT="${GOMODINIT}"
+		
+    export GOTEST="${GOBIN} test"
+		alias GOTEST="${GOTEST}"
+
+    export GOTESTV="${GOBIN} test -v"
+		alias GOTESTV="${GOTESTV}"
+
+		alias GOALIAS="cd ../ && source source.sh && cd hello"
 	fi
 fi
-
