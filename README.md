@@ -10,7 +10,7 @@ Currently only tested on host of Debian-Stretch with toolchains of `GNU/GCC 6.3.
 
 ## Build library
 
-* [golang 1.9.1](https://golang.org/)
+* [golang 1.15.6](https://golang.org/)
 * [libevent 2.1.8-stable 2017-01-22](https://libevent.org/) (build with SSL support)
 * [fdkaac 0.1.3](https://sourceforge.net/projects/opencore-amr/)
 * [ffmpeg 2.8.7](https://ffmpeg.org/)
