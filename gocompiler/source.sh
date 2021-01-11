@@ -38,39 +38,43 @@ if [ ! -z "$1" ]; then
 		#export go env
 		export GOROOT=${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}
 		if [ "${TARGET}" = "win64" ];then
-			export GOOS="windows"
-			export GOARCH="amd64"
+			export _GOOS="windows"
+			export _GOARCH="amd64"
 		elif [ "${TARGET}" = "linux64" ];then
-			export GOOS="linux"
-			export GOARCH="amd64"
+			export _GOOS="linux"
+			export _GOARCH="amd64"
 		elif [ "${TARGET}" = "armv7" ];then
-			export GOOS="linux"
-			export GOARCH="arm"
+			export _GOOS="linux"
+			export _GOARCH="arm"
 		elif [ "${TARGET}" = "mac" ];then
-			export GOOS="darwin"
-			export GOARCH="amd64"
+			export _GOOS="darwin"
+			export _GOARCH="amd64"
 		fi
 		
 		#some go helper function
-		export GOBIN=${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}/bin/go${HOST_BINSUFFIX}
+		export GOBIN=${GOCOMPILER_OBJS_DIR}/${GOCOMPILER_NAME}/bin
 		alias GOBIN=${GOBIN}
 		
-		export GOVERSION="${GOBIN} version"
+		export PATH=${GOBIN}:${PATH}
+		export GOEXE=go${HOST_BINSUFFIX}
+		export GOEXE_CROSS=GOOS=${_GOOS} GOARCH=${_GOARCH} ${GOEXE}
+		
+		export GOVERSION="${GOEXE} version"
 		alias GOVERSION="${GOVERSION}"
 		
-		export GOBUILD="${GOBIN} build -v"
+		export GOBUILD="${GOEXE_CROSS} build -v"
 		alias GOBUILD="${GOBUILD}"
 			
-		export GORUN="${GOBIN} run"
+		export GORUN="${GOEXE} run"
 		alias GORUN="${GORUN}"
 			
-		export GOMODINIT="${GOBIN} mod init"
+		export GOMODINIT="${GOEXE} mod init"
 		alias GOMODINIT="${GOMODINIT}"
 		
-		export GOTEST="${GOBIN} test"
+		export GOTEST="${GOEXE} test"
 		alias GOTEST="${GOTEST}"
 
-		export GOTESTV="${GOBIN} test -v"
+		export GOTESTV="${GOEXE} test -v"
 		alias GOTESTV="${GOTESTV}"
 
 		alias GOALIAS="cd ../ && source source.sh && cd hello"
