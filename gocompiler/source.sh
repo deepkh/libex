@@ -57,7 +57,7 @@ if [ ! -z "$1" ]; then
 		
 		export PATH=${GOBIN}:${PATH}
 		export GOEXE=go${HOST_BINSUFFIX}
-		export GOEXE_CROSS=GOOS=${_GOOS} GOARCH=${_GOARCH} ${GOEXE}
+		export GOEXE_CROSS="GOOS=${_GOOS} GOARCH=${_GOARCH} ${GOEXE}"
 		
 		export GOVERSION="${GOEXE} version"
 		alias GOVERSION="${GOVERSION}"
