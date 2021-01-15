@@ -1,10 +1,12 @@
 #!/bin/bash
 
 install() {
-	echo ====copy x86_64-w64-mingw dlls ====
-	cp -arpf /usr/lib/gcc/x86_64-w64-mingw32/6.3-posix/libgcc_s_seh-1.dll ${RUNTIME}/bin
-	cp -arpf /usr/lib/gcc/x86_64-w64-mingw32/6.3-posix/libstdc++-6.dll ${RUNTIME}/bin
-	cp -arpf /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll ${RUNTIME}/bin
+	if [ ! -f "${RUNTIME}/bin/libgcc_s_seh-1.dll" ];then 
+		echo ====copy x86_64-w64-mingw dlls ====
+		cp -arpf /usr/lib/gcc/x86_64-w64-mingw32/6.3-posix/libgcc_s_seh-1.dll ${RUNTIME}/bin
+		cp -arpf /usr/lib/gcc/x86_64-w64-mingw32/6.3-posix/libstdc++-6.dll ${RUNTIME}/bin
+		cp -arpf /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll ${RUNTIME}/bin
+	fi
 }
 
 $@
