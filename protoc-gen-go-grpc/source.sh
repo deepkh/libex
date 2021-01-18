@@ -14,21 +14,21 @@
 #!/bin/bash
 
 if [ ! -z "$1" ]; then
-	unset GRPC_PHONY
-	unset GRPC_PHONY_CLEAN
-	if [ "${HAVE_GRPC}" = "1" ]; then
-		export GRPC_NAME="grpc_v1.34.0"
-		export GRPC_SUBNAME="sh"
-		export GRPC="$1"
-		export GRPC_OBJS_DIR=${RUNTIME_OBJS}${GRPC/${ROOT}/""}
-		export GRPC_RESULT="${GRPC_OBJS_DIR}/${GRPC_NAME}.${GRPC_SUBNAME}_RESULT"
-		export GRPC_RESULT_CLEAN="${GRPC_RESULT}_clean"
-		export GRPC_PHONY="GRPC"
-		export GRPC_PHONY_CLEAN="GRPC_CLEAN"
-		export GRPC_CFLAGS=
-		export GRPC_LDFLAGS="`PKG_CONFIG_PATH=${RUNTIME_LIB}/pkgconfig pkg-config --libs protobuf grpc++` -lpthread -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-neede"
-    export LIBPROTOBUF_LDFLAGS="-lprotobuf -lpthread"
-		echo "GRPC=${GRPC}"
+	unset PROTOCGENGOGRPC_PHONY
+	unset PROTOCGENGOGRPC_PHONY_CLEAN
+	if [ "${HAVE_PROTOCGENGOGRPC}" = "1" ]; then
+		export PROTOCGENGOGRPC_NAME="protoc-gen-go-grpc"
+		export PROTOCGENGOGRPC_SUBNAME=""
+		export PROTOCGENGOGRPC_CONFIG_H="was_configure"
+		export PROTOCGENGOGRPC="$1"
+		export PROTOCGENGOGRPC_OBJS_DIR=${RUNTIME_OBJS}${PROTOCGENGOGRPC/${ROOT}/""}
+		export PROTOCGENGOGRPC_BIN="${GOBIN}/protoc-gen-go-grpc${HOST_BINSUFFIX}"
+		export PROTOCGENGOGRPC_BIN_CLEAN="${PROTOCGENGOGRPC_BIN}_clean"
+		export PROTOCGENGOGRPC_PHONY="PROTOCGENGOGRPC"
+		export PROTOCGENGOGRPC_PHONY_CLEAN="PROTOCGENGOGRPC_CLEAN"
+		export PROTOCGENGOGRPC_CFLAGS=
+		export PROTOCGENGOGRPC_LDFLAGS=""
+		echo "PROTOCGENGOGRPC=${PROTOCGENGOGRPC}"
 	fi
 fi
 
