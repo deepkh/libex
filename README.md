@@ -22,6 +22,7 @@ Currently only tested on host of Debian-Stretch with toolchains of `GNU/GCC 6.3.
 * queue.h (OpenBSD: queue.h,v 1.16 2000/09/07 19:47:59, TAILQ_* list header based library) 
 * [uchardet](https://github.com/BYVoid/uchardet)
 * [grpc v1.34.0](https://www.grpc.io/docs/) 
+* [gulrak/filesystem v1.4.0](https://github.com/gulrak/filesystem) 
 
 ## Clone
 
