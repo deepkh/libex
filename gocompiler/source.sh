@@ -65,6 +65,9 @@ if [ ! -z "$1" ]; then
 		export GOBUILD="${GOEXE_CROSS} build -v"
 		alias GOBUILD="${GOBUILD}"
 			
+		export GOTESTBUILD="${GOEXE_CROSS} test -v -c"
+		alias GOTESTBUILD="${GOTESTBUILD}"
+			
 		export GORUN="${GOEXE} run"
 		alias GORUN="${GORUN}"
 			
