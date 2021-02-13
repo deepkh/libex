@@ -30,16 +30,16 @@ if [ ! -z "$1" ]; then
 		export SWAGGERCODEGENCLI_LDFLAGS=""
 		echo "SWAGGERCODEGENCLI=${SWAGGERCODEGENCLI}"
 		
-    export SWAGGERCODEGENCLI_BIN="java -jar ${SWAGGERCODEGENCLI_BIN}"
-		alias SWAGGERCODEGENCLI_BIN="${SWAGGERCODEGENCLI_BIN}"
+		#export SWAGGERCODEGENCLI_BIN="java -jar ${SWAGGERCODEGENCLI_BIN}"
+		alias SWAGGERCODEGENCLI_BIN="java -jar ${SWAGGERCODEGENCLI_BIN}"
 
-		export SWAGGERCODEGENCLI_GEN_GOCLIENT="${SWAGGERCODEGENCLI_BIN} generate -l go --additional-properties packageName=swagger"
+		export SWAGGERCODEGENCLI_GEN_GOCLIENT="java -jar ${SWAGGERCODEGENCLI_BIN} generate -l go --additional-properties packageName=swagger"
 		alias SWAGGERCODEGENCLI_GEN_GOCLIENT="${SWAGGERCODEGENCLI_GEN_GOSERVER}"
 		
-		export SWAGGERCODEGENCLI_GEN_GOSERVER="${SWAGGERCODEGENCLI_BIN} generate -l go-server --additional-properties packageName=swagger"
+		export SWAGGERCODEGENCLI_GEN_GOSERVER="java -jar ${SWAGGERCODEGENCLI_BIN} generate -l go-server --additional-properties packageName=swagger"
 		alias SWAGGERCODEGENCLI_GEN_GOSERVER="${SWAGGERCODEGENCLI_GEN_GOSERVER}"
 		
-		export SWAGGERCODEGENCLI_GEN_HTML2="${SWAGGERCODEGENCLI_BIN} generate -l html2 "
+		export SWAGGERCODEGENCLI_GEN_HTML2="java -jar ${SWAGGERCODEGENCLI_BIN} generate -l html2 "
 		alias SWAGGERCODEGENCLI_GEN_HTML2="${SWAGGERCODEGENCLI_GEN_HTML2}"
 	fi
 fi
