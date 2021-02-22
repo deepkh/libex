@@ -1,0 +1,33 @@
+# Copyright (c) 2018, Gary Huang, deepkh@gmail.com, https://github.com/deepkh
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#!/bin/bash
+
+if [ ! -z "$1" ]; then
+	unset LIBBOOST_PHONY
+	unset LIBBOOST_PHONY_CLEAN
+	if [ "${HAVE_LIBBOOST}" = "1" ]; then
+		export LIBBOOST_NAME="boost_v1.75.0"
+		export LIBBOOST_SUBNAME="sh"
+		export LIBBOOST="$1"
+		export LIBBOOST_OBJS_DIR=${RUNTIME_OBJS}${LIBBOOST/${ROOT}/""}
+		export LIBBOOST_RESULT="${LIBBOOST_OBJS_DIR}/${LIBBOOST_NAME}.${LIBBOOST_SUBNAME}_RESULT"
+		export LIBBOOST_RESULT_CLEAN="${LIBBOOST_RESULT}_clean"
+		export LIBBOOST_PHONY="LIBBOOST"
+		export LIBBOOST_PHONY_CLEAN="LIBBOOST_CLEAN"
+		export LIBBOOST_CFLAGS=
+		export LIBBOOST_LDFLAGS=""
+		echo "LIBBOOST=${LIBBOOST}"
+	fi
+fi
+
