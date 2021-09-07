@@ -43,7 +43,8 @@ TARGET_PKG_CONFIG+= --with-protoc=${PROTOBUF_BIN}
 
 #only working on posix version, win32 version can't working
 ifneq (, $(findstring mingw, $(PLATFORM)))
-TARGET_PKG_CONFIG+= CC=${CC}-posix CXX=${CXX}-posix STRIP=${STRIP} AR=${CC}-ar-posix 
+#TARGET_PKG_CONFIG+= CC=${CC}-posix CXX=${CXX}-posix STRIP=${STRIP} AR=${CC}-ar-posix 
+TARGET_PKG_CONFIG+= CC=${CC} CXX=${CXX} STRIP=${STRIP} AR=${AR} 
 else
 TARGET_PKG_CONFIG+= CC=${CC} CXX=${CXX} STRIP=${STRIP} AR=${AR} 
 endif
