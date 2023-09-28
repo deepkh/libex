@@ -17,7 +17,7 @@ if [ ! -z "$1" ]; then
 	unset LIBFFMPEG_PHONY
 	unset LIBFFMPEG_PHONY_CLEAN
 	if [ "${HAVE_LIB_FFMPEG}" = "1" ]; then
-		export LIBFFMPEG_NAME="ffmpeg-2.8.7"
+		export LIBFFMPEG_NAME="ffmpeg-2.8.21"
 		export LIBFFMPEG_SUBNAME="tar.bz2"
 		export LIBFFMPEG_CONFIG_H="was_configure"
 		export LIBFFMPEG="$1"

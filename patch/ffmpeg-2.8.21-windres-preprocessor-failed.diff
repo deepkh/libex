@@ -1,0 +1,12 @@
+diff -ruN ffmpeg-2.8.21-org/common.mak ffmpeg-2.8.21/common.mak
+--- ffmpeg-2.8.21-org/common.mak	2022-10-31 05:11:55.000000000 +0800
++++ ffmpeg-2.8.21/common.mak	2023-09-28 11:08:10.632943350 +0800
+@@ -72,7 +72,7 @@
+ 	$(COMPILE_HOSTC)
+ 
+ %.o: %.rc
+-	$(WINDRES) $(IFLAGS) --preprocessor "$(DEPWINDRES) -E -xc-header -DRC_INVOKED $(CC_DEPFLAGS)" -o $@ $<
++	$(WINDRES) $(IFLAGS) -o $@ $<
+ 
+ %.i: %.c
+ 	$(CC) $(CCFLAGS) $(CC_E) $<

@@ -73,9 +73,17 @@ if [ -z "${HAVE_LIB_PROTOBUF}" ];then
 	export HAVE_LIB_PROTOBUF=1
 fi
 
-if [ -z "${HAVE_I686W64MINGW32DLLS}" ];then
-	if [[ "${PLATFORM}" = "mingw" || "${PLATFORM}" = "mingw.linux" ]];then	
-		export HAVE_I686W64MINGW32DLLS=1
+# out of date
+#if [ -z "${HAVE_I686W64MINGW32DLLS}" ];then
+#	if [[ "${PLATFORM}" = "mingw" || "${PLATFORM}" = "mingw.linux" ]];then	
+#		export HAVE_I686W64MINGW32DLLS=1
+#	fi
+#fi
+
+# since x86_64-mingw-w64 12.2
+if [ -z "${HAVE_X8664W64MINGWDLLS}" ];then
+	if [ "${PLATFORM}" = "mingw.linux" ];then	
+		export HAVE_X8664W64MINGWDLLS=1
 	fi
 fi
 

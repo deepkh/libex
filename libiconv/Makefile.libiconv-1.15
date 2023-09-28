@@ -11,39 +11,35 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
 SHELL := /bin/bash
+
 
 include $(MK_RESET)
 ################ download, mkdir, extract ##########
-TARGET_PKG_BASE_DIR=$(LIBX264_OBJS_DIR)
+TARGET_PKG_BASE_DIR=$(LIBICONV_OBJS_DIR)
 TARGET_PKG_BASE_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_BASE_DIR))
-TARGET_PKG_NAME=$(LIBX264_NAME)
-TARGET_PKG_SUBNAME=$(LIBX264_SUBNAME)
-TARGET_PKG_URL=https://download.videolan.org/x264/snapshots/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_NAME=$(LIBICONV_NAME)
+TARGET_PKG_SUBNAME=$(LIBICONV_SUBNAME)
+TARGET_PKG_URL=http://ftp.gnu.org/pub/gnu/libiconv/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
 TARGET_PKG_FILE=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
 TARGET_PKG_FILE_CLEAN=$(addsuffix _clean,$(TARGET_PKG_FILE))
 TARGET_PKG_DIR=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME)
 TARGET_PKG_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_DIR))
 
 ################ configure ##########
-TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBX264_CONFIG_H}
-TARGET_PKG_CONFIG=./configure 
+TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBICONV_CONFIG_H}
 ifneq (, $(findstring mingw, $(PLATFORM)))
-TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --disable-cli --enable-shared --enable-win32thread --host=$(MINGW_W64) --cross-prefix=$(CROSS_COMPILE1) --chroma-format=420 --disable-avs --extra-ldflags='-Wl,-static -Wl,--output-def=libx264-142.def'
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 else ifneq (, $(findstring linux, $(PLATFORM)))
-TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --disable-cli --enable-shared --chroma-format=420 --disable-avs
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 else ifneq (, $(findstring mac, $(PLATFORM)))
-TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --disable-cli --enable-shared --chroma-format=420 --disable-avs
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
-MY_EX_CFLAGS='-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard'
-MY_EX_LDFLAGS=$(MY_EX_CFLAGS)
-TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --disable-cli --enable-shared --host=$(MINGW_W64) --cross-prefix=$(CROSS_COMPILE1) --chroma-format=420 --disable-avs --extra-cflags=$(MY_EX_CFLAGS) --extra-ldflags=$(MY_EX_LDFLAGS)
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --disable-static --enable-shared --host=$(MINGW_W64)
 endif
 
 ################ make, make install ##########
-TARGET_PKG_LIB=${LIBX264_LIB}
-TARGET_PKG_LIB_CLEAN=${LIBX264_LIB_CLEAN}
+TARGET_PKG_LIB=${LIBICONV_LIB}
+TARGET_PKG_LIB_CLEAN=${LIBICONV_LIB_CLEAN}
 include $(MK_PKG)
-
 

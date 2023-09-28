@@ -1,0 +1,57 @@
+# Copyright (c) 2018, Gary Huang, deepkh@gmail.com, https://github.com/deepkh
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+SHELL := /bin/bash
+
+include $(MK_RESET)
+################ download, mkdir, extract ##########
+TARGET_PKG_BASE_DIR=$(LIBFFMPEG_OBJS_DIR)
+TARGET_PKG_BASE_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_BASE_DIR))
+TARGET_PKG_NAME=$(LIBFFMPEG_NAME)
+TARGET_PKG_SUBNAME=$(LIBFFMPEG_SUBNAME)
+TARGET_PKG_URL=http://ffmpeg.org/releases/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE_CLEAN=$(addsuffix _clean,$(TARGET_PKG_FILE))
+TARGET_PKG_DIR=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME)
+TARGET_PKG_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_DIR))
+
+################ configure ##########
+TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBFFMPEG_CONFIG_H}
+PATCH_FILE_1=$(CP) $(EXTERNAL)/patch/ffmpeg-2.8.7-patch . && patch -p1 < ffmpeg-2.8.7-patch 
+PATCH_FILE_2=$(CP) $(EXTERNAL)/patch/ffmpeg-2.8.21-windres-preprocessor-failed.diff . && patch -p1 < ffmpeg-2.8.21-windres-preprocessor-failed.diff
+TARGET_PKG_CONFIG=$(PATCH_FILE_1)  
+ifneq (, $(findstring mingw.linux, $(PLATFORM)))
+TARGET_PKG_CONFIG+= && $(PATCH_FILE_2)  
+else ifneq (, $(findstring mingw, $(PLATFORM)))
+#make -j8 seems has some program on msys2
+TARGET_JOBS=
+endif
+TARGET_PKG_CONFIG+= && ./configure 
+ifneq (, $(findstring mingw, $(PLATFORM)))
+TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --arch=x86_64 --target-os=mingw32 --cross-prefix=$(CROSS_COMPILE1) --enable-shared --disable-static --enable-runtime-cpudetect --disable-pthreads --disable-devices --disable-avdevice --disable-sdl --enable-avresample --disable-encoders --disable-muxers --disable-network --disable-protocols --enable-protocol=file --disable-programs --enable-encoder=aac --enable-nonfree --enable-gpl --enable-version3 > CFG_RES 
+else ifneq (, $(findstring linux, $(PLATFORM)))
+TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --enable-shared --disable-static --enable-runtime-cpudetect --disable-devices --disable-avdevice --disable-sdl --enable-avresample --disable-encoders --disable-muxers --disable-network --disable-protocols --enable-protocol=file --disable-programs --enable-encoder=aac --enable-nonfree --enable-gpl --enable-version3 > CFG_RES
+else ifneq (, $(findstring mac, $(PLATFORM)))
+TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --enable-shared --disable-static --enable-runtime-cpudetect --disable-devices --disable-avdevice --disable-sdl --enable-avresample --disable-encoders --disable-muxers --disable-network --disable-protocols --enable-protocol=file --disable-programs --enable-encoder=aac > CFG_RES
+else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
+MY_EX_CFLAGS='-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard'
+MY_EX_LDFLAGS=$(MY_EX_CFLAGS)
+TARGET_PKG_CONFIG+=LIBFFMPEG_CONFIG=--prefix=$(RUNTIME) --arch=armel --cpu=cortex-a7 --target-os=linux --cross-prefix=$(CROSS_COMPILE1) --enable-shared --disable-static --enable-runtime-cpudetect --disable-devices --disable-avdevice --disable-sdl --enable-avresample --disable-encoders --disable-muxers --disable-network --disable-protocols --enable-protocol=file --disable-programs --enable-encoder=aac --extra-cflags=$(MY_EX_CFLAGS) --extra-ldflags=$(MY_EX_LDFLAGS) > CFG_RES
+endif
+
+################ make, make install ##########
+TARGET_PKG_LIB=${LIBFFMPEG_LIB}
+TARGET_PKG_LIB_CLEAN=${LIBFFMPEG_LIB_CLEAN}
+include $(MK_PKG)
+

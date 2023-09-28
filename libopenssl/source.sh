@@ -17,7 +17,7 @@ if [ ! -z "$1" ]; then
 	unset LIBOPENSSL_PHONY
 	unset LIBOPENSSL_PHONY_CLEAN
 	if [ "${HAVE_LIB_OPENSSL}" = "1" ]; then
-		export LIBOPENSSL_NAME="openssl-1.1.0f"
+		export LIBOPENSSL_NAME="openssl-1.1.1v"
 		export LIBOPENSSL_SUBNAME="tar.gz"
 		export LIBOPENSSL_CONFIG_H="is_configured"
 		export LIBOPENSSL="$1"

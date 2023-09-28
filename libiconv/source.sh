@@ -17,7 +17,7 @@ if [ ! -z "$1" ]; then
 	unset LIBICONV_PHONY
 	unset LIBICONV_PHONY_CLEAN
 	if [ "${HAVE_LIB_ICONV}" = "1" ]; then
-		export LIBICONV_NAME="libiconv-1.14"
+		export LIBICONV_NAME="libiconv-1.15"
 		export LIBICONV_SUBNAME="tar.gz"
 		export LIBICONV_CONFIG_H="is_configured"
 		export LIBICONV="$1"
