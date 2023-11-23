@@ -17,7 +17,8 @@ if [ ! -z "$1" ]; then
 	unset LIBBOOST_PHONY
 	unset LIBBOOST_PHONY_CLEAN
 	if [ "${HAVE_LIBBOOST}" = "1" ]; then
-		export LIBBOOST_NAME="boost_v1.75.0"
+		#export LIBBOOST_NAME="boost_v1.75.0"
+		export LIBBOOST_NAME="boost_v1.83.0"
 		export LIBBOOST_SUBNAME="sh"
 		export LIBBOOST="$1"
 		export LIBBOOST_OBJS_DIR=${RUNTIME_OBJS}${LIBBOOST/${ROOT}/""}
