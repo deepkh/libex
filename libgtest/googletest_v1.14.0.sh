@@ -1,13 +1,13 @@
 #!/bin/bash
 
-source boost_helper.sh 
+source googletest_helper.sh 
 
 install() {
 	echo ==== $0 install ====
 
-	BUILD_VERSION=1.83.0
-	BUILD_FOLDER=boost
-	BUILD_TARGET=${RUNTIME}/lib/libboost_thread.a
+	BUILD_VERSION=1.14.0
+	BUILD_FOLDER=googletest
+	BUILD_TARGET=${RUNTIME}/lib/libgtest.a
 
 	# download
 	if [ ! -d ${BUILD_FOLDER} ];then
@@ -21,13 +21,12 @@ install() {
 		# if build process succeeded, create a _RESULT file
 		if [ -f ${BUILD_TARGET} ];then
 			echo ==== ${BUILD_TARGET} built success.
-			touch ${LIBBOOST_RESULT}
+			touch ${LIBGTEST_RESULT}
 		else
 			echo ==== ${BUILD_TARGET} BUILD FAIL ==== 
 		fi
 	fi
 }
-
 
 $@
 

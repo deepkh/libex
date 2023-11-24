@@ -1,7 +1,8 @@
 #!/bin/bash
 
 download() {
-	echo "=== download boost ${1} ==="
+	echo "==== $0 download boost_${1} and extract to `pwd`/${2} ===="
+
 	local VER=${1//./_}
 	local FILENAME=boost_${VER}.tar.bz2
 	wget https://boostorg.jfrog.io/artifactory/main/release/${1}/source/${FILENAME}
@@ -27,8 +28,9 @@ build_host_boost_and_install() {
 	popd
 }
 
-build_target_boost_and_install_linux64() {
-	echo "=== build_target_boost_and_install_win64 ==="
+build_target_and_install_linux64() {
+	echo "==== $0 build_target_and_install_linux64 $1 ===="
+
 	pushd boost
 	
 	local BOOST_BUILD_DIR=/tmp/boost_build_dir
@@ -42,8 +44,9 @@ build_target_boost_and_install_linux64() {
 	popd
 }
 
-build_target_boost_and_install_win64() {
-	echo "=== build_target_boost_and_install_win64 ==="
+build_target_and_install_win64() {
+	echo "==== $0 build_target_and_install_linux64 $1 ===="
+
 	pushd boost
 	
 	local BOOST_MINGW_BUILD_DIR=/tmp/boost_mingw_w64_build_dir
@@ -60,11 +63,11 @@ build_target_boost_and_install_win64() {
 	popd
 }
 
-build_target_boost_and_install() {
+build_target_and_install() {
 	if [[ "${HOST}" = "Linux"  && "${TARGET}" == "linux64" ]];then
-		build_target_boost_and_install_linux64
+		build_target_and_install_linux64
 	elif [[ "${HOST}" = "Linux"  && "${TARGET}" == "win64" ]];then
-		build_target_boost_and_install_win64
+		build_target_and_install_win64
 	fi
 }
 
