@@ -17,8 +17,8 @@ if [ ! -z "$1" ]; then
 	unset LIBPROTOBUF_PHONY
 	unset LIBPROTOBUF_PHONY_CLEAN
 	if [ "${HAVE_LIB_PROTOBUF}" = "1" ]; then
-		export LIBPROTOBUF_DOWNLOAD_NAME="v3.20.2"
-		export LIBPROTOBUF_NAME="protobuf-3.20.2"
+		export LIBPROTOBUF_DOWNLOAD_NAME="v3.20.3"
+		export LIBPROTOBUF_NAME="protobuf-3.20.3"
 		export LIBPROTOBUF_SUBNAME="tar.gz"
 		export LIBPROTOBUF_CONFIG_H="was_configure"
 		export LIBPROTOBUF="$1"

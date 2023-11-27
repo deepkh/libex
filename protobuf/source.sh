@@ -18,8 +18,8 @@ if [ ! -z "$1" ]; then
 	unset PROTOBUF_PHONY_CLEAN
 	if [ "${HAVE_PROTOBUF}" = "1" ]; then
 		# Build Host Binary 
-		export PROTOBUF_DOWNLOAD_NAME="v3.20.2"
-		export PROTOBUF_NAME="protobuf-3.20.2"
+		export PROTOBUF_DOWNLOAD_NAME="v3.20.3"
+		export PROTOBUF_NAME="protobuf-3.20.3"
 		export PROTOBUF_SUBNAME="tar.gz"
 		export PROTOBUF_CONFIG_H="was_configure"
 		export PROTOBUF="$1"
