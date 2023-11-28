@@ -17,7 +17,7 @@ if [ ! -z "$1" ]; then
 	unset LIBGTEST_PHONY
 	unset LIBGTEST_PHONY_CLEAN
 	if [ "${HAVE_LIBGTEST}" = "1" ]; then
-		export LIBGTEST_NAME="googletest_v1.14.0"
+		export LIBGTEST_NAME="googletest_v1.13.0"
 		export LIBGTEST_SUBNAME="sh"
 		export LIBGTEST="$1"
 		export LIBGTEST_OBJS_DIR=${RUNTIME_OBJS}${LIBGTEST/${ROOT}/""}
