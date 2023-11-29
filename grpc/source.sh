@@ -23,7 +23,6 @@ if [ ! -z "$1" ]; then
 		export GRPC="$1"
 		export GRPC_OBJS_DIR=${RUNTIME_OBJS}${GRPC/${ROOT}/""}
 		export GRPC_HOST_BIN_DIR=${GRPC_OBJS_DIR}/host_bin
-		export PATH=$GRPC_HOST_BIN_DIR:$PATH
 		export GRPC_RESULT="${GRPC_OBJS_DIR}/${GRPC_NAME}.${GRPC_SUBNAME}_RESULT"
 		export GRPC_RESULT_CLEAN="${GRPC_RESULT}_clean"
 		export GRPC_PHONY="GRPC"

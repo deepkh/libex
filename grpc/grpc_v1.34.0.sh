@@ -29,17 +29,6 @@ install() {
 	if [ ! -f "${RUNTIME}/lib/libgrpc++.a" ];then
 		build_target_grpc_and_install
 	fi
-
-	# some workaround for target win64
-	if [[ "${TARGET}" == "win64" ]];then
-		if [ ! -f "${RUNTIME}/lib/lib.z" ];then
-			echo ====workaround: ln -sf libzlibstatic.a libz.a====
-			pushd ${RUNTIME}/lib/
-			ln -sf libzlibstatic.a libz.a
-			popd 
-		fi
-	fi
-
 }
 
 $@
