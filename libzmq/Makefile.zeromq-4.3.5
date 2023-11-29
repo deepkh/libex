@@ -1,0 +1,45 @@
+# Copyright (c) 2018, Gary Huang, deepkh@gmail.com, https://github.com/deepkh
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+SHELL := /bin/bash
+
+
+include $(MK_RESET)
+################ download, mkdir, extract ##########
+TARGET_PKG_BASE_DIR=$(LIBZMQ_OBJS_DIR)
+TARGET_PKG_BASE_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_BASE_DIR))
+TARGET_PKG_NAME=$(LIBZMQ_NAME)
+TARGET_PKG_SUBNAME=$(LIBZMQ_SUBNAME)
+TARGET_PKG_URL=https://github.com/zeromq/libzmq/releases/download/v${LIBZMQ_VERSION}/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME).$(TARGET_PKG_SUBNAME)
+TARGET_PKG_FILE_CLEAN=$(addsuffix _clean,$(TARGET_PKG_FILE))
+TARGET_PKG_DIR=$(TARGET_PKG_BASE_DIR)/$(TARGET_PKG_NAME)
+TARGET_PKG_DIR_CLEAN=$(addsuffix _clean,$(TARGET_PKG_DIR))
+
+################ configure ##########
+TARGET_PKG_CONFIG_H=${TARGET_PKG_DIR}/${LIBZMQ_CONFIG_H}
+ifneq (, $(findstring mingw, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --host=$(MINGW_W64) --enable-ws
+else ifneq (, $(findstring linux, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --host=$(MINGW_W64) --enable-ws
+else ifneq (, $(findstring mac, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --host=$(MINGW_W64) --enable-ws
+else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
+TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --host=$(MINGW_W64) --enable-ws
+endif
+
+################ make, make install ##########
+TARGET_PKG_LIB=${LIBZMQ_LIB}
+TARGET_PKG_LIB_CLEAN=${LIBZMQ_LIB_CLEAN}
+include $(MK_PKG)
+
