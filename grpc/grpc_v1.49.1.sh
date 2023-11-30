@@ -26,10 +26,10 @@ build_abseil_cpp() {
 	if [[ "${HOST}" = "Linux"  && "${TARGET}" == "linux64" ]];then
 		cmake \
 		-DCMAKE_INSTALL_PREFIX=${RUNTIME} \
-		-DCMAKE_CXX_STANDARD=17 \
+		-DCMAKE_CXX_STANDARD=14 \
 		-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
 		..
-		time make -j16
+		time make VERBOSE=1 -j16
 		time make install
 	elif [[ "${HOST}" = "Linux"  && "${TARGET}" == "win64" ]];then
 		echo === DO_NOTHING. It will copy host_bin afterward. ===
@@ -51,10 +51,10 @@ build_grpc() {
 				-DgRPC_PROTOBUF_PROVIDER=package \
 				-DCMAKE_BUILD_TYPE=Release \
 				-DgRPC_BUILD_TESTS=OFF \
-				-DCMAKE_CXX_STANDARD=17 \
+				-DCMAKE_CXX_STANDARD=14 \
 				-DCMAKE_INSTALL_PREFIX=${RUNTIME} \
 		..
-		time make -j16
+		time make VERBOSE=1 -j16
 		time make install
 	elif [[ "${HOST}" = "Linux"  && "${TARGET}" == "win64" ]];then
 		echo "NO LONGER KNOW HOW TO BUILD GRPC VIA MINGW_W64 ON DEBIAN ANYMORE."
