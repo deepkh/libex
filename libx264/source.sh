@@ -17,7 +17,10 @@ if [ ! -z "$1" ]; then
 	unset LIBX264_PHONY
 	unset LIBX264_PHONY_CLEAN
 	if [ "${HAVE_LIB_X264}" = "1" ]; then
-		export LIBX264_NAME="x264-snapshot-20140712-2245-stable"
+		if [ -z "LIBX264_VERSION" ]; then
+			export LIBX264_VERSION="20140712-2245-stable"
+		fi
+		export LIBX264_NAME="x264-snapshot-${LIBX264_VERSION}"
 		export LIBX264_SUBNAME="tar.bz2"
 		export LIBX264_CONFIG_H="is_configured"
 		export LIBX264="$1"
