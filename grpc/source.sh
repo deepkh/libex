@@ -17,8 +17,8 @@ if [ ! -z "$1" ]; then
 	unset GRPC_PHONY
 	unset GRPC_PHONY_CLEAN
 	if [ "${HAVE_GRPC}" = "1" ]; then
-		#export GRPC_NAME="grpc_v1.59.3"
-		export GRPC_NAME="grpc_v1.49.1"
+		#export GRPC_NAME="grpc_v1.49.1"
+		export GRPC_NAME="grpc_v1.62.1"
 		export GRPC_SUBNAME="sh"
 		export GRPC="$1"
 		export GRPC_OBJS_DIR=${RUNTIME_OBJS}${GRPC/${ROOT}/""}
@@ -28,8 +28,8 @@ if [ ! -z "$1" ]; then
 		export GRPC_PHONY="GRPC"
 		export GRPC_PHONY_CLEAN="GRPC_CLEAN"
 		export GRPC_CFLAGS=
-		export GRPC_LDFLAGS="`PKG_CONFIG_PATH=${RUNTIME_LIB}/pkgconfig pkg-config --libs protobuf grpc++` -lpthread -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-neede"
-    export LIBPROTOBUF_LDFLAGS="-lprotobuf -lpthread"
+		export GRPC_LDFLAGS="`PKG_CONFIG_PATH=${RUNTIME}/grpc-v1.62.1/lib/pkgconfig pkg-config --libs protobuf grpc++` -lpthread -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-neede"
+    	export LIBPROTOBUF_LDFLAGS="-lprotobuf -lpthread"
 		echo "GRPC=${GRPC}"
 	fi
 fi
