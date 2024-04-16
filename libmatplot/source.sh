@@ -26,7 +26,7 @@ if [ ! -z "$1" ]; then
 		export LIBMATPLOT_PHONY="LIBMATPLOT"
 		export LIBMATPLOT_PHONY_CLEAN="LIBMATPLOT_CLEAN"
 		export LIBMATPLOT_CFLAGS=
-		export LIBMATPLOT_LDFLAGS=""
+		export LIBMATPLOT_LDFLAGS="-lmatplot -lpng -ljpeg -ltiff"
 	fi
 fi
 

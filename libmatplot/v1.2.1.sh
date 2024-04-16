@@ -26,6 +26,9 @@ build_libmatplot_v1.2.1() {
 ###
 ### dependencies:
 ### sudo apt install libpng-dev libpng++-dev libjpeg-dev libtiff-dev
+### sudo apt install gnuplot-nox
+###
+### export GNUTERM=dumb  before running the linked app
 ###
 install() {
 	echo ====grpc build process start====
