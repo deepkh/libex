@@ -44,6 +44,23 @@ build_target_and_install_linux64() {
 	popd
 }
 
+build_target_and_install_linux_aarch64() {
+	echo "==== $0 build_target_and_install_linux_aarch64 $1 ===="
+
+	pushd boost
+	
+	local BOOST_BUILD_DIR=/tmp/boost_build_dir
+	rm -rf stage ${RUNTIME}/lib/libboost* ${RUNTIME}/include/boost ${RUNTIME}/lib/cmake/boost_* ${BOOST_BUILD_DIR} ~/user-config.jam
+	CC= CXX= ./bootstrap.sh --prefix=${RUNTIME} --without-libraries=python
+	./b2 --clean-all 
+	time ./b2 --build-dir=${BOOST_BUILD_DIR} --prefix=${RUNTIME} \
+		variant=release \
+		link=static runtime-link=static address-model=64 --without-python install
+
+	popd
+}
+
+
 build_target_and_install_win64() {
 	echo "==== $0 build_target_and_install_linux64 $1 ===="
 
@@ -66,6 +83,8 @@ build_target_and_install_win64() {
 build_target_and_install() {
 	if [[ "${HOST}" = "Linux"  && "${TARGET}" == "linux64" ]];then
 		build_target_and_install_linux64
+	elif [[ "${HOST}" = "Linux"  && "${TARGET}" == "aarch64" ]];then
+		build_target_and_install_linux_aarch64
 	elif [[ "${HOST}" = "Linux"  && "${TARGET}" == "win64" ]];then
 		build_target_and_install_win64
 	fi

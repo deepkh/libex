@@ -37,6 +37,7 @@ TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --host=$(MINGW_W64)
 else ifneq (, $(findstring arm-linux-gnueabihf, $(PLATFORM)))
 TARGET_PKG_CONFIG=./configure --prefix=$(RUNTIME) --host=$(MINGW_W64) 
 endif
+TARGET_PKG_CONFIG+= && $(MAKE) -j8
 
 ################ make, make install ##########
 TARGET_PKG_LIB=${LIBSODIUM_LIB}
