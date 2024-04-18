@@ -1,3 +1,5 @@
+[![workflow](https://github.com/deepkh/libex/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/deepkh/libex/actions)
+
 ## Build collection
 
 This repo provide some scripts and Makefile to build thoses libraries to the following target and arch.
