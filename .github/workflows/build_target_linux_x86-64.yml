@@ -1,0 +1,67 @@
+name: C/C++ CI
+
+on:
+  push:
+    tags:        # run only on pushing new tags
+      - '*'
+
+jobs:
+  build_linux_x86-64:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: Install build tools 
+      run:
+        sudo apt-get -y install cmake unzip zip nasm yasm autoconf bison gawk libtool libtool-bin 
+    - name: configure
+      run: PF=linux source source.sh
+    - name: make
+      run: PF=linux source source.sh && make
+    - name: Tar & Gzip artifact
+      run: cd runtime.linux64/ && tar -czvpf ../libex-v1.1.6_linux_x86-64.tar.gz *
+    - name: upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: runtime.linux64
+        path: libex-v1.1.6_linux_x86-64.tar.gz
+
+  release:
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+        
+      needs: build_linux_x86-64
+
+      steps: 
+        - name: download artifact
+          uses: actions/download-artifact@v3
+          with:
+            name: runtime.linux64
+        - name: release action
+          uses: ncipollo/release-action@v1
+          with:
+            artifacts: libex-v1.1.6_linux_x86-64.tar.gz
+
+
+
+##################################################################
+#  There is a build issue with Ubuntu 22.04's g++-mingw-w64-x86-64.
+##################################################################
+#  build_linux_mingw-w64:
+#    runs-on: ubuntu-22.04
+#    steps:
+#    - name: Checkout repository and submodules
+#      uses: actions/checkout@v3
+#      with:
+#        submodules: recursive
+#    - name: Install build tools 
+#      run:
+#        sudo apt-get -y install cmake unzip zip nasm yasm libsdl2-dev libsdl2-mixer-dev autoconf bison gawk libtool libtool-bin g++-mingw-w64-x86-64
+#    - name: configure
+#      run: PF=mingw.linux source source.sh
+#    - name: make
+#      run: PF=mingw.linux source source.sh && make
+####################################################################
