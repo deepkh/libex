@@ -6,7 +6,7 @@ The final build host for aarch64 is on Debian 11 Bullseye.
 
 ## The reasons for gRPC build materials were removed
 
-I love gRPC functionally, but the tooling is an absolute mess. I mean, the code bases are really a mess to support building on various arch, like mingw-w64 and aarch64, by using the same code base version. The ZeroMq should be an alternative cross-platform, clean and beautiful option.
+I love gRPC functionally, but the tooling is an absolute mess. I mean, the code bases are really a mess to support building on various arch, like mingw-w64 and aarch64, by using the same code base version. The ZeroMq should be an alternative cross-platform, clean option or use debian official built gRpc instead.
 
 ## Clone
 
