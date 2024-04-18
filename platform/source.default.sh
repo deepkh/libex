@@ -11,8 +11,21 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+if [ -z "${HAVE_GHCFILESYSTEM}" ];then
+	export HAVE_GHCFILESYSTEM=1
+fi
+
 if [ -z "${HAVE_LIB_SYS}" ];then
 	export HAVE_LIB_SYS=1
+fi
+
+if [ -z "${HAVE_LIB_LIBSODIUM}" ];then
+	export HAVE_LIB_LIBSODIUM=1
+fi
+
+if [ -z "${HAVE_LIB_LIBZMQ}" ];then
+	export HAVE_LIB_LIBZMQ=1
 fi
 
 if [ -z "${HAVE_LIB_KLIB}" ];then
@@ -39,6 +52,14 @@ if [ -z "${HAVE_LIB_OPENSSL}" ];then
 	export HAVE_LIB_OPENSSL=1
 fi
 
+if [ -z "${HAVE_LIBBOOST}" ];then
+	export HAVE_LIBBOOST=1
+fi
+
+if [ -z "${HAVE_LIBGTEST}" ];then
+	export HAVE_LIBGTEST=1
+fi
+
 if [ -z "${HAVE_LIB_EVENT}" ];then
 	export HAVE_LIB_EVENT=1
 fi
@@ -48,29 +69,17 @@ if [ -z "${HAVE_LIB_JANSSON}" ];then
 fi
 
 if [ -z "${HAVE_LIB_X264}" ];then
+	export LIBX264_VERSION="20191217-2245-stable"
 	export HAVE_LIB_X264=1
 fi
 
-if [ -z "${HAVE_LIB_FDKAAC}" ];then
-	export HAVE_LIB_FDKAAC=1
-fi
+#if [ -z "${HAVE_LIB_FDKAAC}" ];then
+#	export HAVE_LIB_FDKAAC=1
+#fi
 
 if [ -z "${HAVE_LIB_FFMPEG}" ];then
+	export LIBFFMPEG_VERSION="5.1.4"
 	export HAVE_LIB_FFMPEG=1
-fi
-
-if [ -z "${HAVE_GOCOMPILER}" ];then
-	export HAVE_GOCOMPILER=1
-fi
-
-if [ -z "${HAVE_PROTOBUF}" ];then
-	if [ "${CROSS_COMPILE_MODE}" = "1" ];then
-		export HAVE_PROTOBUF=1
-	fi
-fi
-
-if [ -z "${HAVE_LIB_PROTOBUF}" ];then
-	export HAVE_LIB_PROTOBUF=1
 fi
 
 # out of date
@@ -85,30 +94,6 @@ if [ -z "${HAVE_X8664W64MINGWDLLS}" ];then
 	if [ "${PLATFORM}" = "mingw.linux" ];then	
 		export HAVE_X8664W64MINGWDLLS=1
 	fi
-fi
-
-if [ -z "${HAVE_LIB_MOSQUITTO_ALL}" ];then
-	export HAVE_LIB_MOSQUITTO_ALL=1
-fi
-
-if [ -z "${HAVE_LIB_MOSQUITTO}" ];then
-	export HAVE_LIB_MOSQUITTO=1
-fi
-
-if [ -z "${HAVE_BIN_MOSQUITTO_PUB}" ];then
-	export HAVE_BIN_MOSQUITTO_PUB=1
-fi
-
-if [ -z "${HAVE_BIN_MOSQUITTO_SUB}" ];then
-	export HAVE_BIN_MOSQUITTO_SUB=1
-fi
-
-if [ -z "${HAVE_BIN_MOSQUITTO}" ];then
-	export HAVE_BIN_MOSQUITTO=1
-fi
-
-if [ -z "${HAVE_BIN_MOSQUITTO_PASSWD}" ];then
-	export HAVE_BIN_MOSQUITTO_PASSWD=1
 fi
 
 if [ -z "${HAVE_LIB_JSONCPP}" ];then

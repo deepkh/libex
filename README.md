@@ -1,29 +1,12 @@
-## A C/C++ third party library build collection
+## Build collection
 
-This repo can help who would like to build the following library which target for linux_x86-64 and windows_x86-64 on single ubuntu/debian build server. Also is the third party library build scrips for [Netsync Media Server](https://netsync.tv). 
+This repo provide some scripts and Makefile to build thoses libraries on different platform and arch.
+The final build host for x86_64 and x86_64-w64-mingw32 is on Debian 12 bookworm. 
+The final build host for aarch64 is on Debian 11 Bullseye.
 
-Currently only tested on host of Debian-Stretch with toolchains of `GNU/GCC 6.3.0 20170516` for target platform linux-x86_64, `GNU x86_64-w64-mingw32-* 6.3.0 20170516` for target platform windows. But it may supposed to working correctly of `GNU arm-linux-gnueabihf` and other toolchain with some modification. 
-  
-## Build library
+## The reasons for gRPC build materials were removed
 
-* [golang 1.15.6](https://golang.org/)
-* [libevent 2.1.12-stable](https://libevent.org/) (build with SSL support)
-* [fdkaac 0.1.3](https://sourceforge.net/projects/opencore-amr/)
-* [ffmpeg 2.8.21](https://ffmpeg.org/)
-* [libiconv 1.15](https://www.gnu.org/software/libiconv/)
-* [libjansoon](https://digip.org/jansson/) (json serialize/unserialize for C)
-* [jsoncpp 1.8.4](https://github.com/open-source-parsers/jsoncpp) (json serialize/unserialize for C++)
-* [khash.h](https://attractivechaos.github.io/klib/#About)
-* [LodePNG 20141130](https://lodev.org/lodepng/)
-* [mosquitto 1.5.7](https://mosquitto.org/) (build with mosquitto (broker), mosquitto_pub, mosquitto_sub, libmosquitto.so)
-* [openssl 1.1.1v](https://www.openssl.org/)
-* [protobuf 3.14.0](https://github.com/protocolbuffers/protobuf) 
-* [protoc-gen-go](https://pkg.go.dev/google.golang.org/protobuf/cmd/protoc-gen-go) 
-* queue.h (OpenBSD: queue.h,v 1.16 2000/09/07 19:47:59, TAILQ_* list header based library) 
-* [uchardet](https://github.com/BYVoid/uchardet)
-* [grpc v1.34.0](https://www.grpc.io/docs/) 
-* [gulrak/filesystem v1.4.0](https://github.com/gulrak/filesystem) 
-* [boost_v1.75.0](https://www.boost.org/doc/libs/1_75_0/)
+I love gRPC functionally, but the tooling is an absolute mess. I mean, the code bases are really a mess to support building on various arch, like mingw-w64 and aarch64, by using the same code base version. The ZeroMq should be an alternative cross-platform, clean and beautiful option.
 
 ## Clone
 
@@ -31,23 +14,30 @@ Currently only tested on host of Debian-Stretch with toolchains of `GNU/GCC 6.3.
 git clone --recursive https://github.com/deepkh/libex
 ```
 
-## Build target platform linux_x86-64 on Debian/Ubuntu server
+## Build target linux_x86-64 on Debian host
 
 ```bash
 PF=linux source source.sh
 make
 ```
 
-## Build target platform x86_64-windows on Debian/Ubuntu server
+## Build target x86_64-windows on Debian host
 
 ```bash
 PF=mingw.linux source source.sh
 make
 ```
 
-## Runtime structures
+## Build target Linux.aarch64 on Debian host
 
-* runtime.[linux64,win64]/
+```bash
+PF=linux.aarch64 source source.sh
+make
+```
+
+## Runtime folder structures
+
+* runtime.[linux64,win64,aarch64]/
   * bin/
   * include/
   * lib/

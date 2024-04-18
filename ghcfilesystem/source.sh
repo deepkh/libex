@@ -17,7 +17,7 @@ if [ ! -z "$1" ]; then
 	unset GHCFILESYSTEM_PHONY
 	unset GHCFILESYSTEM_PHONY_CLEAN
 	if [ "${HAVE_GHCFILESYSTEM}" = "1" ]; then
-		export GHCFILESYSTEM_NAME="ghcfilesystem_v1.4.0"
+		export GHCFILESYSTEM_NAME="ghcfilesystem_v1.5.14"
 		export GHCFILESYSTEM_SUBNAME="sh"
 		export GHCFILESYSTEM="$1"
 		export GHCFILESYSTEM_OBJS_DIR=${RUNTIME_OBJS}${GHCFILESYSTEM/${ROOT}/""}
