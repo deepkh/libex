@@ -1,4 +1,4 @@
-[![workflow](https://github.com/deepkh/libex/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/deepkh/libex/actions)
+[![workflow](https://github.com/deepkh/libex/actions/workflows/build_target_linux_x86-64.yml/badge.svg)](https://github.com/deepkh/libex/actions)
 
 ## Build collection
 
