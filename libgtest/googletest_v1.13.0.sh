@@ -67,6 +67,8 @@ EOT
 build_target_and_install() {
 	if [[ "${HOST}" = "Linux"  && "${TARGET}" == "linux64" ]];then
 		build_target_and_install_linux64 ${1}
+	elif [[ "${HOST}" = "Linux"  && "${TARGET}" == "aarch64" ]];then
+		build_target_and_install_linux64 ${1}
 	elif [[ "${HOST}" = "Linux"  && "${TARGET}" == "win64" ]];then
 		build_target_and_install_win64 ${1}
 	fi
