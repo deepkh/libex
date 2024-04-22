@@ -103,3 +103,7 @@ fi
 if [ -z "${HAVE_NSIS}" ];then
 	export HAVE_NSIS=1
 fi
+
+if [ -z "${HAVE_GRPC}" ];then
+	export HAVE_GRPC=1
+fi
