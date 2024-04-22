@@ -73,9 +73,9 @@ if [ -z "${HAVE_LIB_X264}" ];then
 	export HAVE_LIB_X264=1
 fi
 
-#if [ -z "${HAVE_LIB_FDKAAC}" ];then
-#	export HAVE_LIB_FDKAAC=1
-#fi
+if [ -z "${HAVE_LIB_FDKAAC}" ];then
+	export HAVE_LIB_FDKAAC=1
+fi
 
 if [ -z "${HAVE_LIB_FFMPEG}" ];then
 	export LIBFFMPEG_VERSION="5.1.4"

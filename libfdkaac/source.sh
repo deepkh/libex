@@ -17,7 +17,7 @@ if [ ! -z "$1" ]; then
 	unset LIBFDKAAC_PHONY
 	unset LIBFDKAAC_PHONY_CLEAN
 	if [ "${HAVE_LIB_FDKAAC}" = "1" ]; then
-		export LIBFDKAAC_NAME="fdk-aac-0.1.3"
+		export LIBFDKAAC_NAME="fdk-aac-2.0.3"
 		export LIBFDKAAC_SUBNAME="tar.gz"
 		export LIBFDKAAC_CONFIG_H="was_configure"
 		export LIBFDKAAC="$1"
