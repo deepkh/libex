@@ -21,12 +21,12 @@ jobs:
     - name: make
       run: PF=linux source source.sh && make
     - name: Tar & Gzip artifact
-      run: cd runtime.linux64/ && tar --exclude='objs' -czvpf ../libex-v1.1.8_linux_x86-64.tar.gz *
+      run: cd runtime.linux64/ && tar --exclude='objs' -czvpf ../libex-v1.2.0_linux_x86-64.tar.gz *
     - name: upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: runtime.linux64
-        path: libex-v1.1.8_linux_x86-64.tar.gz
+        path: libex-v1.2.0_linux_x86-64.tar.gz
 
   release:
       runs-on: ubuntu-latest
@@ -43,7 +43,7 @@ jobs:
         - name: release action
           uses: ncipollo/release-action@v1
           with:
-            artifacts: libex-v1.1.8_linux_x86-64.tar.gz
+            artifacts: libex-v1.2.0_linux_x86-64.tar.gz
 
 
 

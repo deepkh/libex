@@ -44,12 +44,12 @@ TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) \
 --enable-cross-compile --arch=x86_64 --target-os=mingw32 --cross-prefix=$(CROSS_COMPILE1) \
 --enable-shared --disable-static --enable-runtime-cpudetect \
 --disable-w32threads \
---enable-openssl --enable-libx264 --enable-encoder=libx264 \
+--enable-openssl --enable-libx264 --enable-libfdk-aac --enable-encoder=libx264 \
 --enable-nonfree --enable-gpl --enable-version3 > CFG_RES 
 else ifneq (, $(findstring linux, $(PLATFORM)))
 TARGET_PKG_CONFIG+=--prefix=$(RUNTIME) --enable-shared --disable-static --enable-pthreads --enable-runtime-cpudetect --extra-version=deepkh2023 \
 --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages \
---enable-openssl --enable-libx264 --enable-encoder=libx264 \
+--enable-openssl --enable-libx264 --enable-libfdk-aac --enable-encoder=libx264 \
 --enable-nonfree --enable-gpl --enable-version3 \
 > CFG_RES
 else ifneq (, $(findstring mac, $(PLATFORM)))
