@@ -28,6 +28,10 @@ if [ -z "${HAVE_LIB_LIBZMQ}" ];then
 	export HAVE_LIB_LIBZMQ=1
 fi
 
+if [ -z "${HAVE_LIB_CPPZMQ}" ];then
+	export HAVE_LIB_CPPZMQ=1
+fi
+
 if [ -z "${HAVE_LIB_KLIB}" ];then
 	export HAVE_LIB_KLIB=1
 fi
