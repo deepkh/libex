@@ -30,8 +30,16 @@ if [ ! -z "$1" ]; then
 		export LIBFFMPEG_PHONY="LIBFFMPEG"
 		export LIBFFMPEG_PHONY_CLEAN="LIBFFMPEG_CLEAN"
 		export LIBFFMPEG_CFLAGS=
-		export LIBFFMPEG_LDFLAGS="-lavcodec -lavfilter -lpostproc -lavformat -lavutil -lswresample -lswscale" 
-									#-lavresample
+		export LIBFFMPEG_LDFLAGS="-lavcodec${LDLLSUFFIX} \
+								-lavfilter${LDLLSUFFIX} \
+								-lpostproc${LDLLSUFFIX} \
+								-lavformat${LDLLSUFFIX} \
+								-lavutil${LDLLSUFFIX} \
+								-lswresample${LDLLSUFFIX} \
+								-lswscale${LDLLSUFFIX}"
+								#-lavresample${LDLLSUFFIX}
+#		export LIBFFMPEG_LDFLAGS="-lavcodec -lavfilter -lpostproc -lavformat -lavutil -lswresample -lswscale" 
+#									#-lavresample
 		echo "LIBFFMPEG=${LIBFFMPEG}"
 	fi
 fi

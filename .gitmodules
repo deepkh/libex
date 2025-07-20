@@ -4,6 +4,3 @@
 [submodule "libjsoncpp"]
 	path = libjsoncpp
 	url = git@github.com:deepkh/libjsoncpp.git
-[submodule "libmosquitto"]
-	path = libmosquitto
-	url = git@github.com:deepkh/libmosquitto.git

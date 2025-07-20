@@ -5,7 +5,7 @@ download() {
 
 	local VER=${1//./_}
 	local FILENAME=boost_${VER}.tar.bz2
-	wget https://boostorg.jfrog.io/artifactory/main/release/${1}/source/${FILENAME}
+	wget https://archives.boost.io/release/${1}/source/${FILENAME}
 	tar -jxvpf ${FILENAME}
 	ls ${FILENAME/.tar.bz2//}
 	ln -sf ${FILENAME/.tar.bz2//} ${2}
